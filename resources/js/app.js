@@ -8,8 +8,11 @@ import { ZiggyVue } from '../../vendor/tightenco/ziggy';
 import Toast from "vue-toastification";
 import { useToast } from "vue-toastification";
 import 'animate.css';
+import { listenForNotificationTaps } from './Composables/useNativeReminders';
 import "vue-toastification/dist/index.css";
 import "vue-multiselect/dist/vue-multiselect.css";
+
+listenForNotificationTaps();
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 

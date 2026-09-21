@@ -1,0 +1,13 @@
+{
+    "appId": "com.alexpopa.calorii",
+    "appName": "Calorii",
+    "webDir": "capacitor-www",
+    "server": {
+        "url": "https://REPLACE-WITH-YOUR-DOMAIN",
+        "cleartext": false
+    },
+    "ios": {
+        "contentInset": "never",
+        "backgroundColor": "#0A0E1A"
+    }
+}

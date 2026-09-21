@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Meal;
 use App\Services\Fit\DayStats;
 use Carbon\CarbonImmutable;
+use Carbon\CarbonInterface;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -21,14 +22,17 @@ class Home extends Controller
         $meals = $user->meals()->where('eaten_on', $date->toDateString())->orderBy('id')->get();
         $log = $user->dailyLogs()->where('date', $date->toDateString())->first();
 
-        $from = $today->subDays(9)->min($date);
-        $strip = collect($stats->range($user, $from, $today))
+        // the calendar week (Monday to Sunday) that contains the selected day
+        $weekStart = $date->startOfWeek(CarbonInterface::MONDAY);
+        $weekEnd = $weekStart->addDays(6);
+        $strip = collect($stats->range($user, $weekStart, $weekEnd))
             ->reverse()
             ->map(fn (array $day) => [
                 'date' => $day['date'],
                 'weekday' => CarbonImmutable::parse($day['date'])->locale('ro')->isoFormat('ddd'),
                 'day' => CarbonImmutable::parse($day['date'])->day,
                 'hasData' => $day['meals'] > 0 || $day['steps'] > 0 || $day['water_ml'] > 0,
+                'future' => $day['date'] > $today->toDateString(),
             ])
             ->values();
 
@@ -37,6 +41,13 @@ class Home extends Controller
             'dateLabel' => DayStats::label($date),
             'isToday' => $date->isSameDay($today),
             'strip' => $strip,
+            'week' => [
+                'label' => $weekStart->isSameMonth($weekEnd)
+                    ? $weekStart->day.'–'.$weekEnd->locale('ro')->isoFormat('D MMM')
+                    : $weekStart->locale('ro')->isoFormat('D MMM').' – '.$weekEnd->locale('ro')->isoFormat('D MMM'),
+                'prev' => $date->subWeek()->toDateString(),
+                'next' => $weekEnd->lt($today) ? $date->addWeek()->min($today)->toDateString() : null,
+            ],
             'goals' => $user->goals(),
             'weightKg' => $user->latestWeight()?->weight_kg,
             'totals' => [

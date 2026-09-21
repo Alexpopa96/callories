@@ -5,6 +5,7 @@ import FitLayout from '@/Layouts/FitLayout.vue';
 import BottomSheet from '@/Components/Fit/BottomSheet.vue';
 import Section from '@/Components/Fit/Section.vue';
 import {disablePush, enablePush, pushSupported} from '@/Composables/usePush.js';
+import {isNativeApp, syncNativeReminders} from '@/Composables/useNativeReminders.js';
 import {
     ArrowDownTrayIcon,
     ArrowRightStartOnRectangleIcon,
@@ -96,7 +97,13 @@ async function setReminders(next) {
     pushError.value = null;
     const turningOn = (next.meals && !remindersOn.value.meals) || (next.water && !remindersOn.value.water);
 
-    if (turningOn) {
+    if (isNativeApp()) {
+        const result = await syncNativeReminders(next);
+        if (!result.ok) {
+            pushError.value = result.reason;
+            return;
+        }
+    } else if (turningOn) {
         const result = await enablePush(props.pushKey);
         if (!result.ok) {
             pushError.value = result.reason;
@@ -107,10 +114,10 @@ async function setReminders(next) {
     remindersOn.value = next;
     router.put('/me/reminders', next, {preserveScroll: true});
 
-    if (!next.meals && !next.water) await disablePush();
+    if (!isNativeApp() && !next.meals && !next.water) await disablePush();
 }
 
-const canPush = computed(() => pushSupported() && !!props.pushKey);
+const canPush = computed(() => isNativeApp() || (pushSupported() && !!props.pushKey));
 
 // account
 const deleteSheet = ref(false);

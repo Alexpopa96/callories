@@ -309,6 +309,49 @@ class FitFeaturesTest extends TestCase
             ->where('days.0.protein', 100));
     }
 
+    // --- day strip ------------------------------------------------------------------------
+
+    public function test_day_strip_is_the_calendar_week_monday_to_sunday(): void
+    {
+        $user = $this->user();
+        $today = CarbonImmutable::today();
+        $monday = $today->startOfWeek(\Carbon\CarbonInterface::MONDAY);
+
+        $this->actingAs($user)->get('/today')->assertInertia(fn ($page) => $page
+            ->has('strip', 7)
+            ->where('strip.0.date', $monday->toDateString())
+            ->where('strip.0.weekday', 'lun')
+            ->where('strip.6.date', $monday->addDays(6)->toDateString())
+            ->where('strip.6.weekday', 'dum')
+            ->where('week.prev', $today->subWeek()->toDateString())
+            ->where('week.next', null));
+
+        // the days of the current week that have not happened yet cannot be picked
+        $future = $monday->addDays(6)->gt($today);
+        $this->actingAs($user)->get('/today')->assertInertia(fn ($page) => $page
+            ->where('strip.6.future', $future));
+    }
+
+    public function test_day_strip_follows_the_selected_week_and_can_move_forward(): void
+    {
+        $user = $this->user();
+        $today = CarbonImmutable::today();
+        $old = $today->subWeeks(3);
+        $monday = $old->startOfWeek(\Carbon\CarbonInterface::MONDAY);
+
+        $this->actingAs($user)->get('/today?date='.$old->toDateString())->assertInertia(fn ($page) => $page
+            ->where('strip.0.date', $monday->toDateString())
+            ->where('strip.6.date', $monday->addDays(6)->toDateString())
+            ->where('strip.6.future', false)
+            ->where('week.prev', $old->subWeek()->toDateString())
+            ->where('week.next', $old->addWeek()->toDateString()));
+
+        // moving forward never goes past today
+        $lastWeek = $today->subWeek()->startOfWeek(\Carbon\CarbonInterface::MONDAY)->addDays(6);
+        $this->actingAs($user)->get('/today?date='.$lastWeek->toDateString())->assertInertia(fn ($page) => $page
+            ->where('week.next', $lastWeek->addWeek()->min($today)->toDateString()));
+    }
+
     // --- reminders ------------------------------------------------------------------------
 
     public function test_meal_reminders_depend_on_what_was_logged(): void

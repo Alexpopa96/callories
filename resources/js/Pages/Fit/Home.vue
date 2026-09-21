@@ -1,16 +1,17 @@
 <script setup>
-import {computed, nextTick, onMounted, ref} from 'vue';
+import {computed, ref} from 'vue';
 import {Head, Link, router} from '@inertiajs/vue3';
 import FitLayout from '@/Layouts/FitLayout.vue';
 import ProgressRing from '@/Components/Fit/ProgressRing.vue';
 import BottomSheet from '@/Components/Fit/BottomSheet.vue';
-import {BeakerIcon, CameraIcon, ChevronRightIcon, FireIcon, PencilSquareIcon, PlusIcon, ScaleIcon, TrashIcon} from '@heroicons/vue/24/outline/index.js';
+import {BeakerIcon, CameraIcon, ChevronLeftIcon, ChevronRightIcon, FireIcon, PencilSquareIcon, PlusIcon, ScaleIcon, TrashIcon} from '@heroicons/vue/24/outline/index.js';
 
 const props = defineProps({
     date: String,
     dateLabel: String,
     isToday: Boolean,
     strip: Array,
+    week: Object,
     goals: Object,
     totals: Object,
     steps: Number,
@@ -36,13 +37,6 @@ const macros = computed(() => {
     }))
         // fibrele fac parte din carbohidrați, deci bara lor e raportată la 30 g/zi, nu la total
         .concat({label: 'Fibre', value: props.totals.fiber, goal: null, bar: 'bg-lime', pct: Math.min(100, Math.round((props.totals.fiber / 30) * 100))});
-});
-
-const stripEl = ref(null);
-
-onMounted(async () => {
-    await nextTick();
-    stripEl.value?.querySelector('[data-selected="true"]')?.scrollIntoView({inline: 'center', block: 'nearest'});
 });
 
 function goToDate(date) {
@@ -96,9 +90,23 @@ function removeMeal(meal) {
     <Head title="Azi"/>
     <FitLayout :title="isToday ? 'Azi' : dateLabel" :subtitle="isToday ? dateLabel : 'Ziua selectată'"
                :scan-date="date">
-        <div ref="stripEl" class="no-scrollbar -mx-5 flex gap-2 overflow-x-auto px-5 pb-1">
-            <button v-for="day in strip" :key="day.date" type="button" :data-selected="day.date === date"
-                    class="flex w-[3.4rem] shrink-0 flex-col items-center gap-1 rounded-2xl border py-2.5 transition active:scale-95"
+        <div class="flex items-center justify-between">
+            <button type="button" aria-label="Săptămâna anterioară"
+                    class="-ml-2 flex size-11 items-center justify-center rounded-full text-white/60 active:scale-90"
+                    @click="goToDate(week.prev)">
+                <ChevronLeftIcon class="size-5"/>
+            </button>
+            <p class="text-sm font-bold text-white/70">{{ week.label }}</p>
+            <button type="button" aria-label="Săptămâna următoare" :disabled="!week.next"
+                    class="-mr-2 flex size-11 items-center justify-center rounded-full text-white/60 active:scale-90 disabled:opacity-25"
+                    @click="goToDate(week.next)">
+                <ChevronRightIcon class="size-5"/>
+            </button>
+        </div>
+
+        <div class="grid grid-cols-7 gap-1.5">
+            <button v-for="day in strip" :key="day.date" type="button" :data-selected="day.date === date" :disabled="day.future"
+                    class="flex min-w-0 flex-col items-center gap-1 rounded-2xl border py-2.5 transition active:scale-95 disabled:opacity-30 disabled:active:scale-100"
                     :class="day.date === date
                         ? 'border-transparent bg-lime text-ink'
                         : 'border-white/10 bg-white/[0.04] text-white/70'"
