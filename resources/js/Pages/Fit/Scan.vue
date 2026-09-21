@@ -4,8 +4,9 @@ import {Head, Link, useForm} from '@inertiajs/vue3';
 import axios from 'axios';
 import FitLayout from '@/Layouts/FitLayout.vue';
 import MealItemsEditor from '@/Components/Fit/MealItemsEditor.vue';
+import BarcodeScanner from '@/Components/Fit/BarcodeScanner.vue';
 import {useMealItems} from '@/Composables/useMealItems.js';
-import {CameraIcon, PencilSquareIcon, PhotoIcon} from '@heroicons/vue/24/outline/index.js';
+import {CameraIcon, PencilSquareIcon, PhotoIcon, QrCodeIcon} from '@heroicons/vue/24/outline/index.js';
 
 const props = defineProps({
     date: String,
@@ -25,6 +26,16 @@ const error = ref(null);
 const result = ref(null);
 const list = useMealItems();
 const scansLeft = ref(props.scansLeft);
+
+const flow = ref(null); // null | 'photo' | 'barcode'
+const barcodeScanning = ref(false);
+const barcodeLooking = ref(false);
+const barcodeError = ref(null);
+const manualCode = ref('');
+const cameraSupported = typeof window !== 'undefined' && 'BarcodeDetector' in window;
+
+const showFooter = computed(() => (flow.value === 'photo' && result.value?.is_food)
+    || (flow.value === 'barcode' && list.items.value.length > 0));
 
 const form = useForm({
     date: props.date,
@@ -69,6 +80,10 @@ function reset() {
     result.value = null;
     error.value = null;
     list.set([]);
+    flow.value = null;
+    barcodeScanning.value = false;
+    barcodeError.value = null;
+    manualCode.value = '';
     if (cameraInput.value) cameraInput.value.value = '';
     if (galleryInput.value) galleryInput.value.value = '';
 }
@@ -78,6 +93,7 @@ async function onFileChange(event) {
     if (!file) return;
 
     reset();
+    flow.value = 'photo';
     analyzing.value = true;
 
     const prepared = await shrink(file);
@@ -108,6 +124,47 @@ function save() {
     form.notes = result.value.notes;
     form.post('/meals', {forceFormData: true});
 }
+
+function startBarcode() {
+    reset();
+    flow.value = 'barcode';
+    if (cameraSupported) barcodeScanning.value = true;
+}
+
+async function lookupBarcode(value = manualCode.value) {
+    barcodeError.value = null;
+    const digits = String(value).replace(/\D/g, '');
+    if (digits.length < 8) return (barcodeError.value = 'Codul trebuie să aibă cel puțin 8 cifre.');
+
+    barcodeLooking.value = true;
+    try {
+        const {data} = await axios.get(`/barcode/${digits}`);
+        list.add(data);
+        manualCode.value = '';
+    } catch (e) {
+        barcodeError.value = e.response?.data?.message ?? 'A apărut o eroare. Încearcă din nou.';
+    } finally {
+        barcodeLooking.value = false;
+    }
+}
+
+function onBarcodeDetected(value) {
+    barcodeScanning.value = false;
+    lookupBarcode(value);
+}
+
+function saveBarcodeMeal() {
+    form.photo = null;
+    form.items = list.payload();
+    form.confidence = null;
+    form.notes = null;
+    form.post('/meals');
+}
+
+function saveMeal() {
+    if (flow.value === 'barcode') return saveBarcodeMeal();
+    return save();
+}
 </script>
 
 <template>
@@ -119,7 +176,7 @@ function save() {
         <input ref="galleryInput" type="file" accept="image/jpeg,image/png,image/webp,image/gif" class="hidden"
                @change="onFileChange"/>
 
-        <section v-if="!previewUrl && !analyzing"
+        <section v-if="flow === null"
                  class="rounded-[2rem] border border-dashed border-white/15 bg-white/[0.03] px-6 py-10 text-center">
             <div class="mx-auto flex size-20 items-center justify-center rounded-full bg-gradient-to-br from-lime to-aqua text-ink shadow-[0_14px_40px_-10px_rgba(184,243,74,0.6)]">
                 <CameraIcon class="size-10"/>
@@ -138,6 +195,11 @@ function save() {
                     @click="galleryInput.click()">
                 <PhotoIcon class="size-5"/> Alege din galerie
             </button>
+            <button type="button"
+                    class="mt-3 flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-white/5 text-base font-bold text-white/80 active:scale-[0.98]"
+                    @click="startBarcode">
+                <QrCodeIcon class="size-5"/> Scanează cod de bare
+            </button>
             <Link :href="`/meals/create?date=${date}`"
                   class="mt-3 flex h-14 w-full items-center justify-center gap-2 rounded-2xl border border-white/10 text-base font-bold text-white/70 active:scale-[0.98]">
                 <PencilSquareIcon class="size-5"/> Adaugă manual sau din recente
@@ -147,7 +209,87 @@ function save() {
             </p>
         </section>
 
-        <template v-else>
+        <template v-else-if="flow === 'barcode'">
+            <section v-if="!list.items.value.length"
+                     class="rounded-[2rem] border border-dashed border-white/15 bg-white/[0.03] px-6 py-10 text-center">
+                <div class="mx-auto flex size-20 items-center justify-center rounded-full bg-gradient-to-br from-lime to-aqua text-ink shadow-[0_14px_40px_-10px_rgba(184,243,74,0.6)]">
+                    <QrCodeIcon class="size-10"/>
+                </div>
+                <h2 class="mt-5 text-xl font-extrabold">Scanează codul de bare</h2>
+                <p class="mx-auto mt-1.5 max-w-64 text-sm text-white/55">
+                    Îndreaptă camera spre codul produsului și preluăm automat valorile nutriționale.
+                </p>
+                <button v-if="cameraSupported" type="button"
+                        class="mt-6 flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-lime text-base font-extrabold text-ink active:scale-[0.98]"
+                        @click="barcodeScanning = true">
+                    <QrCodeIcon class="size-5"/> Deschide camera
+                </button>
+                <p v-else class="mt-4 text-xs text-white/40">
+                    Telefonul sau browserul acesta nu poate citi codul de bare cu camera; scrie cifrele de sub cod mai jos.
+                </p>
+                <div class="mt-3 flex gap-2">
+                    <input v-model="manualCode" type="text" inputmode="numeric" maxlength="14"
+                           placeholder="Cod de bare (EAN)"
+                           class="h-13 min-w-0 flex-1 rounded-2xl border border-white/10 bg-white/5 px-4 text-base text-white placeholder:text-white/30 focus:border-lime focus:ring-0"
+                           @keyup.enter="lookupBarcode()"/>
+                    <button type="button" :disabled="barcodeLooking"
+                            class="h-13 rounded-2xl bg-white/10 px-5 font-bold text-white active:scale-95 disabled:opacity-50"
+                            @click="lookupBarcode()">
+                        {{ barcodeLooking ? '…' : 'Caută' }}
+                    </button>
+                </div>
+                <p v-if="barcodeError" class="mt-3 text-sm text-rose">{{ barcodeError }}</p>
+                <p class="mt-3 text-xs text-white/40">Datele vin din Open Food Facts.</p>
+                <button type="button"
+                        class="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-sm font-semibold text-white/50 active:scale-[0.98]"
+                        @click="reset">
+                    Renunță
+                </button>
+            </section>
+
+            <section v-else>
+                <div class="rounded-[2rem] border border-white/10 bg-gradient-to-b from-panel2 to-panel p-5">
+                    <p class="text-xs font-semibold uppercase tracking-wider text-white/50">Total scanat</p>
+                    <p class="mt-1 text-4xl font-extrabold leading-none tracking-tight">
+                        {{ list.totals.value.calories.toLocaleString('ro-RO') }}
+                        <span class="text-base font-semibold text-white/55">kcal</span>
+                    </p>
+                </div>
+
+                <h3 class="mb-2 mt-5 text-sm font-bold uppercase tracking-wider text-white/50">Produse scanate</h3>
+                <p class="mb-2 text-xs text-white/40">Corectează porția dacă produsul e altă cantitate decât cea standard.</p>
+                <MealItemsEditor :items="list.items.value" @grams="list.setGrams" @remove="list.remove"/>
+
+                <p v-if="barcodeLooking" class="mt-3 text-sm text-white/55">Caut produsul…</p>
+                <p v-if="barcodeError" class="mt-3 text-sm text-rose">{{ barcodeError }}</p>
+
+                <div class="mt-4 flex gap-2">
+                    <input v-model="manualCode" type="text" inputmode="numeric" maxlength="14"
+                           placeholder="Alt cod de bare"
+                           class="h-12 min-w-0 flex-1 rounded-2xl border border-white/10 bg-white/5 px-4 text-sm text-white placeholder:text-white/30 focus:border-lime focus:ring-0"
+                           @keyup.enter="lookupBarcode()"/>
+                    <button type="button" :disabled="barcodeLooking"
+                            class="h-12 rounded-2xl bg-white/10 px-4 text-sm font-bold text-white active:scale-95 disabled:opacity-50"
+                            @click="lookupBarcode()">
+                        Caută
+                    </button>
+                </div>
+                <button v-if="cameraSupported" type="button"
+                        class="mt-3 h-12 w-full rounded-2xl bg-white/5 text-sm font-semibold text-white/70 active:scale-[0.98]"
+                        @click="barcodeScanning = true">
+                    Scanează alt produs
+                </button>
+                <button type="button"
+                        class="mt-3 h-12 w-full rounded-2xl text-sm font-semibold text-white/50 active:scale-[0.98]"
+                        @click="reset">
+                    Renunță
+                </button>
+            </section>
+
+            <BarcodeScanner v-if="barcodeScanning" @detected="onBarcodeDetected" @close="barcodeScanning = false"/>
+        </template>
+
+        <template v-else-if="flow === 'photo'">
             <div class="relative overflow-hidden rounded-[2rem] border border-white/10 bg-panel">
                 <img v-if="previewUrl" :src="previewUrl" alt="Poza mesei" class="w-full object-cover"
                      :class="result ? 'h-36' : 'max-h-80'"/>
@@ -217,7 +359,7 @@ function save() {
             </button>
         </template>
 
-        <template v-if="result && result.is_food" #footer>
+        <template v-if="showFooter" #footer>
             <div class="flex items-center gap-3">
                 <div class="shrink-0">
                     <p class="text-[11px] font-semibold uppercase tracking-wider text-white/45">Total</p>
@@ -225,7 +367,7 @@ function save() {
                 </div>
                 <button type="button" :disabled="form.processing || list.items.value.length === 0"
                         class="h-14 flex-1 rounded-2xl bg-lime text-base font-extrabold text-ink active:scale-[0.98] disabled:opacity-50"
-                        @click="save">
+                        @click="saveMeal">
                     {{ form.processing ? 'Se salvează…' : 'Salvează masa' }}
                 </button>
             </div>
