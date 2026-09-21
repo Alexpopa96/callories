@@ -1,14 +1,17 @@
 <script setup>
 import {computed, onBeforeUnmount, ref} from 'vue';
-import {Head, useForm} from '@inertiajs/vue3';
+import {Head, Link, useForm} from '@inertiajs/vue3';
 import axios from 'axios';
 import FitLayout from '@/Layouts/FitLayout.vue';
-import {CameraIcon, CheckIcon, PhotoIcon} from '@heroicons/vue/24/outline/index.js';
+import MealItemsEditor from '@/Components/Fit/MealItemsEditor.vue';
+import {useMealItems} from '@/Composables/useMealItems.js';
+import {CameraIcon, PencilSquareIcon, PhotoIcon} from '@heroicons/vue/24/outline/index.js';
 
 const props = defineProps({
     date: String,
     dateLabel: String,
     isToday: Boolean,
+    scansLeft: {type: Number, default: null},
 });
 
 const MAX_SIDE = 1568;
@@ -20,7 +23,8 @@ const previewUrl = ref(null);
 const analyzing = ref(false);
 const error = ref(null);
 const result = ref(null);
-const selected = ref([]);
+const list = useMealItems();
+const scansLeft = ref(props.scansLeft);
 
 const form = useForm({
     date: props.date,
@@ -36,19 +40,6 @@ const confidenceClasses = {
     medium: 'bg-sun/15 text-sun',
     high: 'bg-lime/15 text-lime',
 };
-
-const chosenItems = computed(() => (result.value?.items ?? []).filter((_, index) => selected.value[index]));
-
-const totals = computed(() => {
-    const sum = (key) => chosenItems.value.reduce((acc, item) => acc + Number(item[key] || 0), 0);
-    return {
-        calories: Math.round(sum('calories')),
-        protein: Math.round(sum('protein_g') * 10) / 10,
-        carbs: Math.round(sum('carbs_g') * 10) / 10,
-        fat: Math.round(sum('fat_g') * 10) / 10,
-        fiber: Math.round(sum('fiber_g') * 10) / 10,
-    };
-});
 
 function revokePreview() {
     if (previewUrl.value) URL.revokeObjectURL(previewUrl.value);
@@ -77,7 +68,7 @@ function reset() {
     previewUrl.value = null;
     result.value = null;
     error.value = null;
-    selected.value = [];
+    list.set([]);
     if (cameraInput.value) cameraInput.value.value = '';
     if (galleryInput.value) galleryInput.value.value = '';
 }
@@ -98,8 +89,10 @@ async function onFileChange(event) {
         body.append('photo', prepared);
         const {data} = await axios.post('/scan/analyze', body);
         result.value = data;
-        selected.value = data.items.map(() => true);
+        list.set(data.items);
+        scansLeft.value = data.scans_left ?? null;
     } catch (e) {
+        if (e.response?.data?.scans_left !== undefined) scansLeft.value = e.response.data.scans_left;
         error.value = e.response?.data?.errors?.photo?.[0]
             ?? e.response?.data?.message
             ?? 'A apărut o eroare. Încearcă din nou.';
@@ -110,7 +103,7 @@ async function onFileChange(event) {
 
 function save() {
     form.photo = photo.value;
-    form.items = chosenItems.value;
+    form.items = list.payload();
     form.confidence = result.value.confidence;
     form.notes = result.value.notes;
     form.post('/meals', {forceFormData: true});
@@ -145,6 +138,13 @@ function save() {
                     @click="galleryInput.click()">
                 <PhotoIcon class="size-5"/> Alege din galerie
             </button>
+            <Link :href="`/meals/create?date=${date}`"
+                  class="mt-3 flex h-14 w-full items-center justify-center gap-2 rounded-2xl border border-white/10 text-base font-bold text-white/70 active:scale-[0.98]">
+                <PencilSquareIcon class="size-5"/> Adaugă manual sau din recente
+            </Link>
+            <p v-if="scansLeft !== null" class="mt-3 text-xs text-white/40">
+                {{ scansLeft > 0 ? `${scansLeft} ${scansLeft === 1 ? 'analiză rămasă' : 'analize rămase'} azi` : 'Ai folosit toate analizele de azi' }}
+            </p>
         </section>
 
         <template v-else>
@@ -170,7 +170,7 @@ function save() {
                         <div>
                             <p class="text-xs font-semibold uppercase tracking-wider text-white/50">Total estimat</p>
                             <p class="mt-1 text-4xl font-extrabold leading-none tracking-tight">
-                                {{ totals.calories.toLocaleString('ro-RO') }}
+                                {{ list.totals.value.calories.toLocaleString('ro-RO') }}
                                 <span class="text-base font-semibold text-white/55">kcal</span>
                             </p>
                         </div>
@@ -180,19 +180,60 @@ function save() {
                     </div>
                     <div class="mt-4 grid grid-cols-4 gap-2 text-center">
                         <div class="rounded-2xl bg-white/5 py-2.5">
-                            <p class="text-lg font-extrabold leading-none text-aqua">{{ totals.protein }}<span class="text-xs"> g</span></p>
+                            <p class="text-lg font-extrabold leading-none text-aqua">{{ list.totals.value.protein }}<span class="text-xs"> g</span></p>
                             <p class="mt-1 text-[11px] text-white/50">Proteine</p>
                         </div>
                         <div class="rounded-2xl bg-white/5 py-2.5">
-                            <p class="text-lg font-extrabold leading-none text-sun">{{ totals.carbs }}<span class="text-xs"> g</span></p>
+                            <p class="text-lg font-extrabold leading-none text-sun">{{ list.totals.value.carbs }}<span class="text-xs"> g</span></p>
                             <p class="mt-1 text-[11px] text-white/50">Carbohidrați</p>
                         </div>
                         <div class="rounded-2xl bg-white/5 py-2.5">
-                            <p class="text-lg font-extrabold leading-none text-rose">{{ totals.fat }}<span class="text-xs"> g</span></p>
+                            <p class="text-lg font-extrabold leading-none text-rose">{{ list.totals.value.fat }}<span class="text-xs"> g</span></p>
                             <p class="mt-1 text-[11px] text-white/50">Grăsimi</p>
                         </div>
                         <div class="rounded-2xl bg-white/5 py-2.5">
-                            <p class="text-lg font-extrabold leading-none text-lime">{{ totals.fiber }}<span class="text-xs"> g</span></p>
+                            <p class="text-lg font-extrabold leading-none text-lime">{{ list.totals.value.fiber }}<span class="text-xs"> g</span></p>
+                            <p class="mt-1 text-[11px] text-white/50">Fibre</p>
+                        </div>
+                    </div>
+                </div>
+
+                <h3 class="mb-2 mt-5 text-sm font-bold uppercase tracking-wider text-white/50">Alimente găsite</h3>
+                <p class="mb-2 text-xs text-white/40">Corectează porția dacă estimarea nu se potrivește; valorile se recalculează.</p>
+                <MealItemsEditor :items="list.items.value" @grams="list.setGrams" @remove="list.remove"/>
+
+                <p v-if="result.notes" class="mt-1 text-sm text-white/55">{{ result.notes }}</p>
+            </section>
+
+            <section v-else-if="result" class="mt-4">
+                <div class="rounded-[2rem] border border-white/10 bg-gradient-to-b from-panel2 to-panel p-5">
+                    <div class="flex items-end justify-between">
+                        <div>
+                            <p class="text-xs font-semibold uppercase tracking-wider text-white/50">Total estimat</p>
+                            <p class="mt-1 text-4xl font-extrabold leading-none tracking-tight">
+                                {{ list.totals.value.calories.toLocaleString('ro-RO') }}
+                                <span class="text-base font-semibold text-white/55">kcal</span>
+                            </p>
+                        </div>
+                        <span class="rounded-full px-3 py-1 text-xs font-bold" :class="confidenceClasses[result.confidence]">
+                            {{ confidenceLabels[result.confidence] }}
+                        </span>
+                    </div>
+                    <div class="mt-4 grid grid-cols-4 gap-2 text-center">
+                        <div class="rounded-2xl bg-white/5 py-2.5">
+                            <p class="text-lg font-extrabold leading-none text-aqua">{{ list.totals.value.protein }}<span class="text-xs"> g</span></p>
+                            <p class="mt-1 text-[11px] text-white/50">Proteine</p>
+                        </div>
+                        <div class="rounded-2xl bg-white/5 py-2.5">
+                            <p class="text-lg font-extrabold leading-none text-sun">{{ list.totals.value.carbs }}<span class="text-xs"> g</span></p>
+                            <p class="mt-1 text-[11px] text-white/50">Carbohidrați</p>
+                        </div>
+                        <div class="rounded-2xl bg-white/5 py-2.5">
+                            <p class="text-lg font-extrabold leading-none text-rose">{{ list.totals.value.fat }}<span class="text-xs"> g</span></p>
+                            <p class="mt-1 text-[11px] text-white/50">Grăsimi</p>
+                        </div>
+                        <div class="rounded-2xl bg-white/5 py-2.5">
+                            <p class="text-lg font-extrabold leading-none text-lime">{{ list.totals.value.fiber }}<span class="text-xs"> g</span></p>
                             <p class="mt-1 text-[11px] text-white/50">Fibre</p>
                         </div>
                     </div>
@@ -224,7 +265,7 @@ function save() {
                     {{ form.errors.items || form.errors.date }}
                 </p>
 
-                <button type="button" :disabled="form.processing || chosenItems.length === 0"
+                <button type="button" :disabled="form.processing || list.items.value.length === 0"
                         class="mt-5 h-14 w-full rounded-2xl bg-lime text-base font-extrabold text-ink shadow-[0_12px_30px_-10px_rgba(184,243,74,0.7)] active:scale-[0.98] disabled:opacity-50"
                         @click="save">
                     {{ form.processing ? 'Se salvează…' : 'Salvează masa' }}

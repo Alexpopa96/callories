@@ -38,6 +38,16 @@ class User extends Authenticatable
         'calorie_goal',
         'steps_goal',
         'water_goal_ml',
+        'protein_goal_g',
+        'carbs_goal_g',
+        'fat_goal_g',
+        'sex',
+        'birth_date',
+        'height_cm',
+        'activity_level',
+        'goal_type',
+        'remind_meals',
+        'remind_water',
     ];
 
     /**
@@ -71,6 +81,9 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'birth_date' => 'date:Y-m-d',
+            'remind_meals' => 'boolean',
+            'remind_water' => 'boolean',
         ];
     }
 
@@ -87,7 +100,15 @@ class User extends Authenticatable
             'calories' => (int) $this->calorie_goal,
             'steps' => (int) $this->steps_goal,
             'waterMl' => (int) $this->water_goal_ml,
+            'proteinG' => $this->protein_goal_g,
+            'carbsG' => $this->carbs_goal_g,
+            'fatG' => $this->fat_goal_g,
         ];
+    }
+
+    public function latestWeight(): ?WeightLog
+    {
+        return $this->weightLogs()->orderByDesc('date')->first();
     }
 
     public function meals(): HasMany
@@ -98,6 +119,21 @@ class User extends Authenticatable
     public function dailyLogs(): HasMany
     {
         return $this->hasMany(DailyLog::class);
+    }
+
+    public function weightLogs(): HasMany
+    {
+        return $this->hasMany(WeightLog::class);
+    }
+
+    public function favoriteFoods(): HasMany
+    {
+        return $this->hasMany(FavoriteFood::class);
+    }
+
+    public function pushSubscriptions(): HasMany
+    {
+        return $this->hasMany(PushSubscription::class);
     }
 
     public function userRole()

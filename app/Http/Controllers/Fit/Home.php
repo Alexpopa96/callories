@@ -38,6 +38,7 @@ class Home extends Controller
             'isToday' => $date->isSameDay($today),
             'strip' => $strip,
             'goals' => $user->goals(),
+            'weightKg' => $user->latestWeight()?->weight_kg,
             'totals' => [
                 'calories' => (int) $meals->sum('calories'),
                 'protein' => round($meals->sum('protein_g'), 1),

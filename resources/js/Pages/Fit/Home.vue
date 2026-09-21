@@ -4,7 +4,7 @@ import {Head, Link, router} from '@inertiajs/vue3';
 import FitLayout from '@/Layouts/FitLayout.vue';
 import ProgressRing from '@/Components/Fit/ProgressRing.vue';
 import BottomSheet from '@/Components/Fit/BottomSheet.vue';
-import {BeakerIcon, CameraIcon, FireIcon, PlusIcon, TrashIcon} from '@heroicons/vue/24/outline/index.js';
+import {BeakerIcon, CameraIcon, ChevronRightIcon, FireIcon, PencilSquareIcon, PlusIcon, ScaleIcon, TrashIcon} from '@heroicons/vue/24/outline/index.js';
 
 const props = defineProps({
     date: String,
@@ -15,6 +15,7 @@ const props = defineProps({
     totals: Object,
     steps: Number,
     waterMl: Number,
+    weightKg: {type: Number, default: null},
     meals: Array,
 });
 
@@ -26,12 +27,15 @@ const remaining = computed(() => props.goals.calories - props.totals.calories);
 const macros = computed(() => {
     const total = props.totals.protein + props.totals.carbs + props.totals.fat;
     return [
-        {label: 'Proteine', value: props.totals.protein, bar: 'bg-aqua'},
-        {label: 'Carbohidrați', value: props.totals.carbs, bar: 'bg-sun'},
-        {label: 'Grăsimi', value: props.totals.fat, bar: 'bg-rose'},
-    ].map((macro) => ({...macro, pct: total > 0 ? Math.round((macro.value / total) * 100) : 0}))
+        {label: 'Proteine', value: props.totals.protein, goal: props.goals.proteinG, bar: 'bg-aqua'},
+        {label: 'Carbohidrați', value: props.totals.carbs, goal: props.goals.carbsG, bar: 'bg-sun'},
+        {label: 'Grăsimi', value: props.totals.fat, goal: props.goals.fatG, bar: 'bg-rose'},
+    ].map((macro) => ({
+        ...macro,
+        pct: macro.goal ? Math.min(100, Math.round((macro.value / macro.goal) * 100)) : (total > 0 ? Math.round((macro.value / total) * 100) : 0),
+    }))
         // fibrele fac parte din carbohidrați, deci bara lor e raportată la 30 g/zi, nu la total
-        .concat({label: 'Fibre', value: props.totals.fiber, bar: 'bg-lime', pct: Math.min(100, Math.round((props.totals.fiber / 30) * 100))});
+        .concat({label: 'Fibre', value: props.totals.fiber, goal: null, bar: 'bg-lime', pct: Math.min(100, Math.round((props.totals.fiber / 30) * 100))});
 });
 
 const stripEl = ref(null);
@@ -133,7 +137,7 @@ function removeMeal(meal) {
                         <div class="h-full rounded-full transition-all duration-700" :class="macro.bar"
                              :style="{width: `${macro.pct}%`}"></div>
                     </div>
-                    <p class="mt-2 text-lg font-extrabold leading-none">{{ macro.value }}<span class="text-xs font-semibold text-white/50"> g</span></p>
+                    <p class="mt-2 text-lg font-extrabold leading-none">{{ macro.value }}<span class="text-xs font-semibold text-white/50"> {{ macro.goal ? `/ ${macro.goal} g` : 'g' }}</span></p>
                     <p class="mt-1 text-[11px] font-medium text-white/50">{{ macro.label }}</p>
                 </div>
             </div>
@@ -173,10 +177,24 @@ function removeMeal(meal) {
             </div>
         </div>
 
+        <Link href="/weight" class="mt-4 flex items-center gap-3 rounded-[1.5rem] border border-white/10 bg-panel p-4 active:scale-[0.99]">
+            <span class="flex size-10 items-center justify-center rounded-full bg-rose/15 text-rose"><ScaleIcon class="size-5"/></span>
+            <span class="min-w-0 flex-1">
+                <span class="block text-xs font-semibold uppercase tracking-wider text-white/50">Greutate</span>
+                <span class="block text-lg font-extrabold leading-tight">
+                    {{ weightKg ? `${weightKg.toLocaleString('ro-RO')} kg` : 'Adaugă prima măsurătoare' }}
+                </span>
+            </span>
+            <ChevronRightIcon class="size-5 text-white/35"/>
+        </Link>
+
         <section class="mt-7">
             <div class="mb-3 flex items-center justify-between">
                 <h2 class="text-lg font-extrabold tracking-tight">Mese</h2>
-                <Link :href="`/scan?date=${date}`" class="text-sm font-bold text-lime">+ Adaugă</Link>
+                <div class="flex items-center gap-4">
+                    <Link :href="`/meals/create?date=${date}`" class="text-sm font-bold text-white/60">Manual</Link>
+                    <Link :href="`/scan?date=${date}`" class="text-sm font-bold text-lime">+ Scanează</Link>
+                </div>
             </div>
 
             <div v-if="meals.length === 0"
@@ -206,10 +224,16 @@ function removeMeal(meal) {
                         </p>
                         <p class="mt-1 text-sm font-extrabold text-lime">{{ fmt(meal.calories) }} kcal</p>
                     </div>
-                    <button type="button" class="rounded-full p-2 text-white/35 transition active:scale-90 active:text-rose"
-                            aria-label="Șterge masa" @click="removeMeal(meal)">
-                        <TrashIcon class="size-5"/>
-                    </button>
+                    <div class="flex shrink-0 flex-col">
+                        <Link :href="`/meals/${meal.id}/edit`" class="rounded-full p-2 text-white/35 transition active:scale-90 active:text-lime"
+                              aria-label="Editează masa">
+                            <PencilSquareIcon class="size-5"/>
+                        </Link>
+                        <button type="button" class="rounded-full p-2 text-white/35 transition active:scale-90 active:text-rose"
+                                aria-label="Șterge masa" @click="removeMeal(meal)">
+                            <TrashIcon class="size-5"/>
+                        </button>
+                    </div>
                 </li>
             </ul>
         </section>

@@ -31,6 +31,13 @@ return [
     'anthropic' => [
         'key' => env('ANTHROPIC_API_KEY'),
         'model' => env('ANTHROPIC_MODEL', 'claude-sonnet-5'),
+        'daily_scan_limit' => (int) env('SCAN_DAILY_LIMIT', 20),
+    ],
+
+    'webpush' => [
+        'public_key' => env('VAPID_PUBLIC_KEY'),
+        'private_key' => env('VAPID_PRIVATE_KEY'),
+        'subject' => env('VAPID_SUBJECT', 'mailto:admin@example.com'),
     ],
 
     'slack' => [
