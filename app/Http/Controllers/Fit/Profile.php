@@ -27,7 +27,12 @@ class Profile extends Controller
                 'weightKg' => $weight,
             ],
             'suggestion' => $calculator->suggest($user, $weight),
-            'reminders' => ['meals' => $user->remind_meals, 'water' => $user->remind_water],
+            'reminders' => [
+                'meals' => $user->remind_meals,
+                'water' => $user->remind_water,
+                'calorieLimit' => $user->remind_calorie_limit,
+                'challenge' => $user->remind_challenge,
+            ],
             'pushKey' => config('services.webpush.public_key'),
         ]);
     }

@@ -4,6 +4,7 @@ import {Head, Link, router} from '@inertiajs/vue3';
 import FitLayout from '@/Layouts/FitLayout.vue';
 import ProgressRing from '@/Components/Fit/ProgressRing.vue';
 import BottomSheet from '@/Components/Fit/BottomSheet.vue';
+import ChallengeCard from '@/Components/Fit/ChallengeCard.vue';
 import {BeakerIcon, CameraIcon, ChevronLeftIcon, ChevronRightIcon, FireIcon, PencilSquareIcon, PlusIcon, ScaleIcon, TrashIcon} from '@heroicons/vue/24/outline/index.js';
 
 const props = defineProps({
@@ -17,6 +18,7 @@ const props = defineProps({
     steps: Number,
     waterMl: Number,
     weightKg: {type: Number, default: null},
+    challenge: {type: Object, default: null},
     meals: Array,
 });
 
@@ -151,6 +153,8 @@ function removeMeal(meal) {
                 </div>
             </div>
         </section>
+
+        <ChallengeCard :challenge="challenge" :today-calories="totals.calories"/>
 
         <div class="mt-4 grid grid-cols-2 gap-4">
             <button type="button" class="flex flex-col justify-start rounded-[1.75rem] border border-white/10 bg-panel p-4 text-left transition active:scale-[0.98]"

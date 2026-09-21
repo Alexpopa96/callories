@@ -4,6 +4,7 @@ import {Head, router, useForm} from '@inertiajs/vue3';
 import axios from 'axios';
 import FitLayout from '@/Layouts/FitLayout.vue';
 import MealItemsEditor from '@/Components/Fit/MealItemsEditor.vue';
+import BarcodeUnknownForm from '@/Components/Fit/BarcodeUnknownForm.vue';
 import {useMealItems} from '@/Composables/useMealItems.js';
 
 const BarcodeScanner = defineAsyncComponent(() => import('@/Components/Fit/BarcodeScanner.vue'));
@@ -85,10 +86,12 @@ const code = ref('');
 const looking = ref(false);
 const barcodeError = ref(null);
 const scanning = ref(false);
+const unknownCode = ref(null);
 const cameraSupported = typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getUserMedia;
 
 async function lookup(value = code.value) {
     barcodeError.value = null;
+    unknownCode.value = null;
     const digits = String(value).replace(/\D/g, '');
     if (digits.length < 8) return (barcodeError.value = 'Codul trebuie să aibă cel puțin 8 cifre.');
 
@@ -98,7 +101,8 @@ async function lookup(value = code.value) {
         meal.add(data);
         code.value = '';
     } catch (e) {
-        barcodeError.value = e.response?.data?.message ?? 'A apărut o eroare. Încearcă din nou.';
+        if (e.response?.status === 404) unknownCode.value = digits;
+        else barcodeError.value = e.response?.data?.message ?? 'A apărut o eroare. Încearcă din nou.';
     } finally {
         looking.value = false;
     }
@@ -108,6 +112,12 @@ function onDetected(value) {
     scanning.value = false;
     code.value = value;
     lookup(value);
+}
+
+function onCustomSaved(item) {
+    meal.add(item);
+    unknownCode.value = null;
+    code.value = '';
 }
 
 const fmt = (value) => Math.round(value).toLocaleString('ro-RO');
@@ -210,6 +220,7 @@ const fmt = (value) => Math.round(value).toLocaleString('ro-RO');
                 </button>
                 <p v-else class="text-xs text-white/40">Telefonul sau browserul acesta nu poate citi codul de bare cu camera; scrie cifrele de sub cod.</p>
                 <p v-if="barcodeError" class="text-sm text-rose">{{ barcodeError }}</p>
+                <BarcodeUnknownForm v-if="unknownCode" :code="unknownCode" @saved="onCustomSaved" @cancel="unknownCode = null"/>
                 <p class="text-xs text-white/40">Datele vin din Open Food Facts. Poți modifica porția după ce adaugi produsul.</p>
             </div>
         </section>

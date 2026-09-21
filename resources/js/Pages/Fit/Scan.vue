@@ -4,6 +4,7 @@ import {Head, Link, useForm} from '@inertiajs/vue3';
 import axios from 'axios';
 import FitLayout from '@/Layouts/FitLayout.vue';
 import MealItemsEditor from '@/Components/Fit/MealItemsEditor.vue';
+import BarcodeUnknownForm from '@/Components/Fit/BarcodeUnknownForm.vue';
 import {useMealItems} from '@/Composables/useMealItems.js';
 
 const BarcodeScanner = defineAsyncComponent(() => import('@/Components/Fit/BarcodeScanner.vue'));
@@ -33,6 +34,7 @@ const barcodeScanning = ref(false);
 const barcodeLooking = ref(false);
 const barcodeError = ref(null);
 const manualCode = ref('');
+const unknownCode = ref(null);
 const cameraSupported = typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getUserMedia;
 
 const showFooter = computed(() => (flow.value === 'photo' && result.value?.is_food)
@@ -85,6 +87,7 @@ function reset() {
     barcodeScanning.value = false;
     barcodeError.value = null;
     manualCode.value = '';
+    unknownCode.value = null;
     if (cameraInput.value) cameraInput.value.value = '';
     if (galleryInput.value) galleryInput.value.value = '';
 }
@@ -134,6 +137,7 @@ function startBarcode() {
 
 async function lookupBarcode(value = manualCode.value) {
     barcodeError.value = null;
+    unknownCode.value = null;
     const digits = String(value).replace(/\D/g, '');
     if (digits.length < 8) return (barcodeError.value = 'Codul trebuie să aibă cel puțin 8 cifre.');
 
@@ -143,7 +147,8 @@ async function lookupBarcode(value = manualCode.value) {
         list.add(data);
         manualCode.value = '';
     } catch (e) {
-        barcodeError.value = e.response?.data?.message ?? 'A apărut o eroare. Încearcă din nou.';
+        if (e.response?.status === 404) unknownCode.value = digits;
+        else barcodeError.value = e.response?.data?.message ?? 'A apărut o eroare. Încearcă din nou.';
     } finally {
         barcodeLooking.value = false;
     }
@@ -152,6 +157,12 @@ async function lookupBarcode(value = manualCode.value) {
 function onBarcodeDetected(value) {
     barcodeScanning.value = false;
     lookupBarcode(value);
+}
+
+function onCustomBarcodeSaved(item) {
+    list.add(item);
+    unknownCode.value = null;
+    manualCode.value = '';
 }
 
 function saveBarcodeMeal() {
@@ -240,6 +251,8 @@ function saveMeal() {
                     </button>
                 </div>
                 <p v-if="barcodeError" class="mt-3 text-sm text-rose">{{ barcodeError }}</p>
+                <BarcodeUnknownForm v-if="unknownCode" class="mt-3 text-left" :code="unknownCode"
+                                     @saved="onCustomBarcodeSaved" @cancel="unknownCode = null"/>
                 <p class="mt-3 text-xs text-white/40">Datele vin din Open Food Facts.</p>
                 <button type="button"
                         class="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-sm font-semibold text-white/50 active:scale-[0.98]"
@@ -263,6 +276,8 @@ function saveMeal() {
 
                 <p v-if="barcodeLooking" class="mt-3 text-sm text-white/55">Caut produsul…</p>
                 <p v-if="barcodeError" class="mt-3 text-sm text-rose">{{ barcodeError }}</p>
+                <BarcodeUnknownForm v-if="unknownCode" class="mt-3" :code="unknownCode"
+                                     @saved="onCustomBarcodeSaved" @cancel="unknownCode = null"/>
 
                 <div class="mt-4 flex gap-2">
                     <input v-model="manualCode" type="text" inputmode="numeric" maxlength="14"

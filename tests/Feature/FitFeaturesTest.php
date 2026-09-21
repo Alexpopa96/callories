@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\CustomBarcode;
 use App\Models\User;
 use App\Services\Calories\FoodPhotoAnalyzer;
 use App\Services\Fit\GoalCalculator;
@@ -184,6 +185,50 @@ class FitFeaturesTest extends TestCase
 
         $this->actingAs($this->user())->getJson('/barcode/1234567890123')->assertNotFound();
         $this->actingAs($this->user())->getJson('/barcode/abc')->assertUnprocessable();
+    }
+
+    public function test_barcode_lookup_falls_back_to_a_saved_custom_product(): void
+    {
+        Cache::flush();
+        Http::fake(['world.openfoodfacts.org/*' => Http::response(['status' => 0])]);
+        CustomBarcode::create([
+            'code' => '1234567890123', 'name' => 'Brânză Lidl', 'portion_grams' => 100,
+            'calories' => 300, 'protein_g' => 20, 'carbs_g' => 2, 'fat_g' => 24, 'fiber_g' => 0,
+        ]);
+
+        $this->actingAs($this->user())->getJson('/barcode/1234567890123')
+            ->assertOk()
+            ->assertJsonPath('name', 'Brânză Lidl')
+            ->assertJsonPath('calories', 300)
+            ->assertJsonPath('per100.calories', 300);
+    }
+
+    public function test_an_unknown_barcode_can_be_saved_and_is_then_recognised(): void
+    {
+        Cache::flush();
+        Http::fake(['world.openfoodfacts.org/*' => Http::response(['status' => 0])]);
+        $user = $this->user();
+
+        $this->actingAs($user)->getJson('/barcode/1234567890123')->assertNotFound();
+
+        $this->actingAs($user)->postJson('/barcode/1234567890123', [
+            'name' => 'Brânză Lidl', 'portion_grams' => 100, 'calories' => 300,
+            'protein_g' => 20, 'carbs_g' => 2, 'fat_g' => 24, 'fiber_g' => 0,
+        ])->assertOk()->assertJsonPath('name', 'Brânză Lidl')->assertJsonPath('per100.calories', 300);
+
+        $this->assertSame(1, CustomBarcode::count());
+        $this->assertSame($user->id, CustomBarcode::sole()->created_by);
+
+        $this->actingAs($user)->getJson('/barcode/1234567890123')->assertOk()->assertJsonPath('name', 'Brânză Lidl');
+    }
+
+    public function test_saving_a_custom_barcode_is_validated(): void
+    {
+        $user = $this->user();
+
+        $this->actingAs($user)->postJson('/barcode/abc', ['name' => 'X', 'portion_grams' => 100, 'calories' => 1])->assertUnprocessable();
+        $this->actingAs($user)->postJson('/barcode/1234567890123', ['portion_grams' => 100, 'calories' => 1])->assertUnprocessable();
+        $this->assertSame(0, CustomBarcode::count());
     }
 
     // --- goals ----------------------------------------------------------------------------
@@ -422,10 +467,69 @@ class FitFeaturesTest extends TestCase
     {
         $user = $this->user();
 
-        $this->actingAs($user)->put('/me/reminders', ['meals' => true, 'water' => false])->assertRedirect();
+        $this->actingAs($user)->put('/me/reminders', ['meals' => true, 'water' => false, 'calorieLimit' => true])->assertRedirect();
 
         $this->assertTrue($user->fresh()->remind_meals);
         $this->assertFalse($user->fresh()->remind_water);
+        $this->assertTrue($user->fresh()->remind_calorie_limit);
+    }
+
+    // --- calorie limit reminder -------------------------------------------------------------
+
+    public function test_calorie_limit_message_fires_once_when_crossing_a_threshold(): void
+    {
+        $planner = new ReminderPlanner;
+
+        $this->assertNull($planner->calorieLimitMessage(1000, 1500, 2000));
+        $this->assertSame('Te apropii de limita zilnică', $planner->calorieLimitMessage(1500, 1850, 2000)['title']);
+        $this->assertNull($planner->calorieLimitMessage(1850, 1900, 2000));
+        $this->assertSame('Ai depășit limita zilnică', $planner->calorieLimitMessage(1900, 2050, 2000)['title']);
+        $this->assertNull($planner->calorieLimitMessage(2050, 2200, 2000));
+        $this->assertNull($planner->calorieLimitMessage(0, 100, 0));
+    }
+
+    public function test_saving_a_meal_sends_a_push_when_it_crosses_the_calorie_limit(): void
+    {
+        $user = $this->user(['remind_calorie_limit' => true, 'calorie_goal' => 2000]);
+
+        $this->mock(PushSender::class, function ($mock) {
+            $mock->shouldReceive('send')->once()
+                ->withArgs(fn (User $u, array $message) => $message['title'] === 'Ai depășit limita zilnică')
+                ->andReturn(1);
+        });
+
+        $this->actingAs($user)->post('/meals', [
+            'date' => CarbonImmutable::today()->toDateString(),
+            'items' => [$this->item(['calories' => 2100])],
+        ])->assertRedirect();
+    }
+
+    public function test_no_calorie_limit_push_when_the_reminder_is_off(): void
+    {
+        $user = $this->user(['remind_calorie_limit' => false, 'calorie_goal' => 2000]);
+
+        $this->mock(PushSender::class, function ($mock) {
+            $mock->shouldNotReceive('send');
+        });
+
+        $this->actingAs($user)->post('/meals', [
+            'date' => CarbonImmutable::today()->toDateString(),
+            'items' => [$this->item(['calories' => 2100])],
+        ])->assertRedirect();
+    }
+
+    public function test_no_calorie_limit_push_for_a_meal_logged_on_a_past_day(): void
+    {
+        $user = $this->user(['remind_calorie_limit' => true, 'calorie_goal' => 2000]);
+
+        $this->mock(PushSender::class, function ($mock) {
+            $mock->shouldNotReceive('send');
+        });
+
+        $this->actingAs($user)->post('/meals', [
+            'date' => CarbonImmutable::yesterday()->toDateString(),
+            'items' => [$this->item(['calories' => 2100])],
+        ])->assertRedirect();
     }
 
     // --- export and account deletion --------------------------------------------------------

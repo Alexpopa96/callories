@@ -91,11 +91,14 @@ const inputClass = 'mt-1 h-12 w-full rounded-xl border border-white/10 bg-white/
 
 // reminders
 const pushError = ref(null);
-const remindersOn = ref({meals: props.reminders.meals, water: props.reminders.water});
+const remindersOn = ref({meals: props.reminders.meals, water: props.reminders.water, calorieLimit: props.reminders.calorieLimit, challenge: props.reminders.challenge});
 
 async function setReminders(next) {
     pushError.value = null;
-    const turningOn = (next.meals && !remindersOn.value.meals) || (next.water && !remindersOn.value.water);
+    const turningOn = (next.meals && !remindersOn.value.meals)
+        || (next.water && !remindersOn.value.water)
+        || (next.calorieLimit && !remindersOn.value.calorieLimit)
+        || (next.challenge && !remindersOn.value.challenge);
 
     if (isNativeApp()) {
         const result = await syncNativeReminders(next);
@@ -114,7 +117,7 @@ async function setReminders(next) {
     remindersOn.value = next;
     router.put('/me/reminders', next, {preserveScroll: true});
 
-    if (!isNativeApp() && !next.meals && !next.water) await disablePush();
+    if (!isNativeApp() && !next.meals && !next.water && !next.calorieLimit && !next.challenge) await disablePush();
 }
 
 const canPush = computed(() => isNativeApp() || (pushSupported() && !!props.pushKey));
@@ -244,7 +247,7 @@ const logout = () => router.post('/logout');
 
         <Section title="Notificări">
         <div class="space-y-4">
-            <label v-for="item in [{key: 'meals', label: 'Reminder pentru mese', hint: 'La 13:00 dacă nu ai mâncat și la 20:00 dacă ești sub jumătate din obiectiv'}, {key: 'water', label: 'Reminder pentru apă', hint: 'La 11:00, 15:00 și 19:00 când ești în urma obiectivului'}]"
+            <label v-for="item in [{key: 'meals', label: 'Reminder pentru mese', hint: 'La 13:00 dacă nu ai mâncat și la 20:00 dacă ești sub jumătate din obiectiv'}, {key: 'water', label: 'Reminder pentru apă', hint: 'La 11:00, 15:00 și 19:00 când ești în urma obiectivului'}, {key: 'calorieLimit', label: 'Reminder limită calorii', hint: 'Te anunț când o masă te duce aproape de obiectivul zilnic sau îl depășește'}, {key: 'challenge', label: 'Reminder provocare', hint: 'Te anunț dacă nu te-ai cântărit, dacă ești în afara ritmului sau la un prag important'}]"
                    :key="item.key" class="flex items-start justify-between gap-4">
                 <span>
                     <span class="block font-bold">{{ item.label }}</span>

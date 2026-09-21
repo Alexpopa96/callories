@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Fit\AbandonChallenge;
 use App\Http\Controllers\Fit\AddMeal;
 use App\Http\Controllers\Fit\Analyze;
 use App\Http\Controllers\Fit\ApplyGoals;
@@ -14,6 +15,9 @@ use App\Http\Controllers\Fit\Home;
 use App\Http\Controllers\Fit\LookupBarcode;
 use App\Http\Controllers\Fit\Profile;
 use App\Http\Controllers\Fit\Scan;
+use App\Http\Controllers\Fit\ShowChallenge;
+use App\Http\Controllers\Fit\StoreChallenge;
+use App\Http\Controllers\Fit\StoreCustomBarcode;
 use App\Http\Controllers\Fit\StoreFavorite;
 use App\Http\Controllers\Fit\StoreMeal;
 use App\Http\Controllers\Fit\StoreWeight;
@@ -45,6 +49,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('favorites', StoreFavorite::class)->name('fit.favorites.store');
     Route::delete('favorites/{favorite}', DestroyFavorite::class)->name('fit.favorites.destroy');
     Route::get('barcode/{code}', LookupBarcode::class)->name('fit.barcode');
+    Route::post('barcode/{code}', StoreCustomBarcode::class)->name('fit.barcode.store');
 
     Route::put('log/water', UpdateWater::class)->name('fit.water');
     Route::put('log/steps', UpdateSteps::class)->name('fit.steps');
@@ -52,6 +57,10 @@ Route::middleware(['auth'])->group(function () {
     Route::get('weight', Weight::class)->name('fit.weight');
     Route::put('log/weight', StoreWeight::class)->name('fit.weight.store');
     Route::delete('weight/{weight}', DestroyWeight::class)->name('fit.weight.destroy');
+
+    Route::get('challenge', ShowChallenge::class)->name('fit.challenge.show');
+    Route::post('challenge', StoreChallenge::class)->name('fit.challenge.store');
+    Route::delete('challenge/{challenge}', AbandonChallenge::class)->name('fit.challenge.abandon');
 
     Route::get('me', Profile::class)->name('fit.profile');
     Route::put('me/goals', UpdateGoals::class)->name('fit.goals');

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Fit;
 
 use App\Http\Controllers\Controller;
 use App\Models\Meal;
+use App\Services\Fit\ChallengeProgress;
 use App\Services\Fit\DayStats;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
@@ -13,11 +14,15 @@ use Inertia\Response;
 
 class Home extends Controller
 {
-    public function __invoke(Request $request, DayStats $stats): Response
+    public function __invoke(Request $request, DayStats $stats, ChallengeProgress $challengeProgress): Response
     {
         $user = $request->user();
         $date = DayStats::resolveDate($request->query('date'));
         $today = CarbonImmutable::today();
+
+        $challenge = $user->activeChallenge;
+        $challenge?->completeIfDue();
+        $challenge?->refresh();
 
         $meals = $user->meals()->where('eaten_on', $date->toDateString())->orderBy('id')->get();
         $log = $user->dailyLogs()->where('date', $date->toDateString())->first();
@@ -36,6 +41,23 @@ class Home extends Controller
             ])
             ->values();
 
+        $challengeSummary = null;
+
+        if ($challenge && $challenge->status === 'active') {
+            $progress = $challengeProgress->forChallenge($challenge);
+            $challengeSummary = [
+                'goal' => $challenge->goal,
+                'daysElapsed' => $progress['daysElapsed'],
+                'totalDays' => $progress['totalDays'],
+                'pctDays' => $progress['pctDays'],
+                'calorieGoal' => $challenge->calorie_goal,
+                'startWeightKg' => $progress['startWeightKg'],
+                'targetWeightKg' => $progress['targetWeightKg'],
+                'currentWeightKg' => $progress['currentWeightKg'],
+                'pctWeight' => $progress['pctWeight'],
+            ];
+        }
+
         return Inertia::render('Fit/Home', [
             'date' => $date->toDateString(),
             'dateLabel' => DayStats::label($date),
@@ -50,6 +72,7 @@ class Home extends Controller
             ],
             'goals' => $user->goals(),
             'weightKg' => $user->latestWeight()?->weight_kg,
+            'challenge' => $challengeSummary,
             'totals' => [
                 'calories' => (int) $meals->sum('calories'),
                 'protein' => round($meals->sum('protein_g'), 1),

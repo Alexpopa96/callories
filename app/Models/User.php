@@ -5,6 +5,7 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
@@ -48,6 +49,8 @@ class User extends Authenticatable
         'goal_type',
         'remind_meals',
         'remind_water',
+        'remind_calorie_limit',
+        'remind_challenge',
     ];
 
     /**
@@ -84,6 +87,8 @@ class User extends Authenticatable
             'birth_date' => 'date:Y-m-d',
             'remind_meals' => 'boolean',
             'remind_water' => 'boolean',
+            'remind_calorie_limit' => 'boolean',
+            'remind_challenge' => 'boolean',
         ];
     }
 
@@ -124,6 +129,16 @@ class User extends Authenticatable
     public function weightLogs(): HasMany
     {
         return $this->hasMany(WeightLog::class);
+    }
+
+    public function challenges(): HasMany
+    {
+        return $this->hasMany(Challenge::class);
+    }
+
+    public function activeChallenge(): HasOne
+    {
+        return $this->hasOne(Challenge::class)->where('status', 'active');
     }
 
     public function favoriteFoods(): HasMany
