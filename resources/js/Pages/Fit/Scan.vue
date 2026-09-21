@@ -1,11 +1,12 @@
 <script setup>
-import {computed, onBeforeUnmount, ref} from 'vue';
+import {computed, defineAsyncComponent, onBeforeUnmount, ref} from 'vue';
 import {Head, Link, useForm} from '@inertiajs/vue3';
 import axios from 'axios';
 import FitLayout from '@/Layouts/FitLayout.vue';
 import MealItemsEditor from '@/Components/Fit/MealItemsEditor.vue';
-import BarcodeScanner from '@/Components/Fit/BarcodeScanner.vue';
 import {useMealItems} from '@/Composables/useMealItems.js';
+
+const BarcodeScanner = defineAsyncComponent(() => import('@/Components/Fit/BarcodeScanner.vue'));
 import {CameraIcon, PencilSquareIcon, PhotoIcon, QrCodeIcon} from '@heroicons/vue/24/outline/index.js';
 
 const props = defineProps({
@@ -32,7 +33,7 @@ const barcodeScanning = ref(false);
 const barcodeLooking = ref(false);
 const barcodeError = ref(null);
 const manualCode = ref('');
-const cameraSupported = typeof window !== 'undefined' && 'BarcodeDetector' in window;
+const cameraSupported = typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getUserMedia;
 
 const showFooter = computed(() => (flow.value === 'photo' && result.value?.is_food)
     || (flow.value === 'barcode' && list.items.value.length > 0));

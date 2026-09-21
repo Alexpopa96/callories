@@ -1,44 +1,47 @@
 <script setup>
 import {onBeforeUnmount, onMounted, ref} from 'vue';
+import {BrowserMultiFormatReader} from '@zxing/browser';
+import {BarcodeFormat, DecodeHintType} from '@zxing/library';
 import {XMarkIcon} from '@heroicons/vue/24/outline/index.js';
 
 const emit = defineEmits(['detected', 'close']);
 
 const video = ref(null);
 const error = ref(null);
-let stream = null;
-let timer = null;
-
-function stop() {
-    clearInterval(timer);
-    stream?.getTracks().forEach((track) => track.stop());
-    stream = null;
-}
+let controls = null;
+let done = false;
 
 onMounted(async () => {
-    try {
-        const detector = new window.BarcodeDetector({formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e']});
-        stream = await navigator.mediaDevices.getUserMedia({video: {facingMode: 'environment'}});
-        video.value.srcObject = stream;
-        await video.value.play();
+    const hints = new Map();
+    hints.set(DecodeHintType.POSSIBLE_FORMATS, [
+        BarcodeFormat.EAN_13,
+        BarcodeFormat.EAN_8,
+        BarcodeFormat.UPC_A,
+        BarcodeFormat.UPC_E,
+    ]);
+    const reader = new BrowserMultiFormatReader(hints);
 
-        timer = setInterval(async () => {
-            try {
-                const [code] = await detector.detect(video.value);
-                if (code) {
-                    stop();
-                    emit('detected', code.rawValue);
+    try {
+        controls = await reader.decodeFromConstraints(
+            {video: {facingMode: 'environment'}},
+            video.value,
+            (result) => {
+                if (result && !done) {
+                    done = true;
+                    controls?.stop();
+                    emit('detected', result.getText());
                 }
-            } catch {
-                // the frame was not ready yet, try again on the next tick
-            }
-        }, 300);
+            },
+        );
     } catch {
         error.value = 'Nu pot porni camera. Verifică permisiunile sau scrie codul de mână.';
     }
 });
 
-onBeforeUnmount(stop);
+onBeforeUnmount(() => {
+    done = true;
+    controls?.stop();
+});
 </script>
 
 <template>

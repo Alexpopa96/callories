@@ -1,11 +1,12 @@
 <script setup>
-import {computed, reactive, ref} from 'vue';
+import {computed, defineAsyncComponent, reactive, ref} from 'vue';
 import {Head, router, useForm} from '@inertiajs/vue3';
 import axios from 'axios';
 import FitLayout from '@/Layouts/FitLayout.vue';
 import MealItemsEditor from '@/Components/Fit/MealItemsEditor.vue';
-import BarcodeScanner from '@/Components/Fit/BarcodeScanner.vue';
 import {useMealItems} from '@/Composables/useMealItems.js';
+
+const BarcodeScanner = defineAsyncComponent(() => import('@/Components/Fit/BarcodeScanner.vue'));
 import {QrCodeIcon, TrashIcon} from '@heroicons/vue/24/outline/index.js';
 
 const props = defineProps({
@@ -84,7 +85,7 @@ const code = ref('');
 const looking = ref(false);
 const barcodeError = ref(null);
 const scanning = ref(false);
-const cameraSupported = typeof window !== 'undefined' && 'BarcodeDetector' in window;
+const cameraSupported = typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getUserMedia;
 
 async function lookup(value = code.value) {
     barcodeError.value = null;

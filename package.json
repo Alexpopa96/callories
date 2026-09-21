@@ -35,6 +35,8 @@
         "@capacitor/local-notifications": "^8.3.1",
         "@headlessui/vue": "^1.7.23",
         "@heroicons/vue": "^2.2.0",
+        "@zxing/browser": "^0.2.1",
+        "@zxing/library": "^0.23.0",
         "animate.css": "^4.1.1",
         "lodash": "^4.17.21",
         "three": "^0.172.0"
