@@ -149,7 +149,8 @@ function save() {
 
         <template v-else>
             <div class="relative overflow-hidden rounded-[2rem] border border-white/10 bg-panel">
-                <img v-if="previewUrl" :src="previewUrl" alt="Poza mesei" class="max-h-80 w-full object-cover"/>
+                <img v-if="previewUrl" :src="previewUrl" alt="Poza mesei" class="w-full object-cover"
+                     :class="result ? 'h-36' : 'max-h-80'"/>
                 <div v-if="analyzing"
                      class="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-ink/70 backdrop-blur-sm">
                     <div class="size-12 animate-spin rounded-full border-4 border-white/15 border-t-lime"></div>
@@ -202,74 +203,11 @@ function save() {
                 <p class="mb-2 text-xs text-white/40">Corectează porția dacă estimarea nu se potrivește; valorile se recalculează.</p>
                 <MealItemsEditor :items="list.items.value" @grams="list.setGrams" @remove="list.remove"/>
 
-                <p v-if="result.notes" class="mt-1 text-sm text-white/55">{{ result.notes }}</p>
-            </section>
-
-            <section v-else-if="result" class="mt-4">
-                <div class="rounded-[2rem] border border-white/10 bg-gradient-to-b from-panel2 to-panel p-5">
-                    <div class="flex items-end justify-between">
-                        <div>
-                            <p class="text-xs font-semibold uppercase tracking-wider text-white/50">Total estimat</p>
-                            <p class="mt-1 text-4xl font-extrabold leading-none tracking-tight">
-                                {{ list.totals.value.calories.toLocaleString('ro-RO') }}
-                                <span class="text-base font-semibold text-white/55">kcal</span>
-                            </p>
-                        </div>
-                        <span class="rounded-full px-3 py-1 text-xs font-bold" :class="confidenceClasses[result.confidence]">
-                            {{ confidenceLabels[result.confidence] }}
-                        </span>
-                    </div>
-                    <div class="mt-4 grid grid-cols-4 gap-2 text-center">
-                        <div class="rounded-2xl bg-white/5 py-2.5">
-                            <p class="text-lg font-extrabold leading-none text-aqua">{{ list.totals.value.protein }}<span class="text-xs"> g</span></p>
-                            <p class="mt-1 text-[11px] text-white/50">Proteine</p>
-                        </div>
-                        <div class="rounded-2xl bg-white/5 py-2.5">
-                            <p class="text-lg font-extrabold leading-none text-sun">{{ list.totals.value.carbs }}<span class="text-xs"> g</span></p>
-                            <p class="mt-1 text-[11px] text-white/50">Carbohidrați</p>
-                        </div>
-                        <div class="rounded-2xl bg-white/5 py-2.5">
-                            <p class="text-lg font-extrabold leading-none text-rose">{{ list.totals.value.fat }}<span class="text-xs"> g</span></p>
-                            <p class="mt-1 text-[11px] text-white/50">Grăsimi</p>
-                        </div>
-                        <div class="rounded-2xl bg-white/5 py-2.5">
-                            <p class="text-lg font-extrabold leading-none text-lime">{{ list.totals.value.fiber }}<span class="text-xs"> g</span></p>
-                            <p class="mt-1 text-[11px] text-white/50">Fibre</p>
-                        </div>
-                    </div>
-                </div>
-
-                <h3 class="mb-2 mt-5 text-sm font-bold uppercase tracking-wider text-white/50">Alimente găsite</h3>
-                <ul class="space-y-2">
-                    <li v-for="(item, index) in result.items" :key="index">
-                        <label class="flex cursor-pointer items-center gap-3 rounded-2xl border border-white/5 bg-panel p-3.5">
-                            <input v-model="selected[index]" type="checkbox" class="peer sr-only"/>
-                            <span class="flex size-6 shrink-0 items-center justify-center rounded-lg border border-white/20 text-transparent transition peer-checked:border-lime peer-checked:bg-lime peer-checked:text-ink">
-                                <CheckIcon class="size-4" stroke-width="3"/>
-                            </span>
-                            <span class="min-w-0 flex-1">
-                                <span class="block truncate font-bold leading-tight">{{ item.name }}</span>
-                                <span class="mt-0.5 block text-xs text-white/45">~{{ Math.round(item.portion_grams) }} g</span>
-                                <span class="mt-0.5 block text-[11px] text-white/45">
-                                    P {{ item.protein_g }} · C {{ item.carbs_g }} · G {{ item.fat_g }} · F {{ item.fiber_g }}
-                                </span>
-                            </span>
-                            <span class="text-sm font-extrabold">{{ Math.round(item.calories) }} kcal</span>
-                        </label>
-                    </li>
-                </ul>
-
                 <p v-if="result.notes" class="mt-3 text-sm text-white/55">{{ result.notes }}</p>
                 <p class="mt-2 text-xs text-white/35">Valorile sunt estimări din poză, nu măsurători exacte.</p>
                 <p v-if="form.errors.items || form.errors.date" class="mt-3 text-sm text-rose">
                     {{ form.errors.items || form.errors.date }}
                 </p>
-
-                <button type="button" :disabled="form.processing || list.items.value.length === 0"
-                        class="mt-5 h-14 w-full rounded-2xl bg-lime text-base font-extrabold text-ink shadow-[0_12px_30px_-10px_rgba(184,243,74,0.7)] active:scale-[0.98] disabled:opacity-50"
-                        @click="save">
-                    {{ form.processing ? 'Se salvează…' : 'Salvează masa' }}
-                </button>
             </section>
 
             <button v-if="!analyzing" type="button"
@@ -277,6 +215,20 @@ function save() {
                     @click="reset">
                 Altă poză
             </button>
+        </template>
+
+        <template v-if="result && result.is_food" #footer>
+            <div class="flex items-center gap-3">
+                <div class="shrink-0">
+                    <p class="text-[11px] font-semibold uppercase tracking-wider text-white/45">Total</p>
+                    <p class="text-xl font-extrabold leading-tight">{{ list.totals.value.calories.toLocaleString('ro-RO') }} <span class="text-xs font-semibold text-white/50">kcal</span></p>
+                </div>
+                <button type="button" :disabled="form.processing || list.items.value.length === 0"
+                        class="h-14 flex-1 rounded-2xl bg-lime text-base font-extrabold text-ink active:scale-[0.98] disabled:opacity-50"
+                        @click="save">
+                    {{ form.processing ? 'Se salvează…' : 'Salvează masa' }}
+                </button>
+            </div>
         </template>
     </FitLayout>
 </template>

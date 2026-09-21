@@ -22,6 +22,11 @@ const metrics = {
 const dayMetrics = {calories: metrics.calories, steps: metrics.steps, waterMl: metrics.waterMl};
 
 const range = ref(7);
+
+const hasData = (day) => day.calories > 0 || day.steps > 0 || day.waterMl > 0 || day.meals > 0;
+const showEmpty = ref(false);
+const listedDays = computed(() => (showEmpty.value ? props.days : props.days.filter(hasData)));
+const emptyCount = computed(() => props.days.filter((day) => !hasData(day)).length);
 const shownAverages = computed(() => (range.value === 7 ? props.averages : props.averages30));
 
 const active = ref('calories');
@@ -127,7 +132,7 @@ const pct = (value, goal) => Math.min(100, Math.round((value / goal) * 100));
 
         <h2 class="mb-3 mt-7 text-lg font-extrabold tracking-tight">Zile</h2>
         <ul class="space-y-2.5">
-            <li v-for="day in days" :key="day.date">
+            <li v-for="day in listedDays" :key="day.date">
                 <Link :href="`/today?date=${day.date}`"
                       class="block rounded-[1.5rem] border border-white/5 bg-panel p-4 transition active:scale-[0.99]">
                     <div class="flex items-baseline justify-between">
@@ -148,5 +153,13 @@ const pct = (value, goal) => Math.min(100, Math.round((value / goal) * 100));
                 </Link>
             </li>
         </ul>
+        <p v-if="!listedDays.length" class="rounded-2xl border border-dashed border-white/15 p-5 text-center text-sm text-white/50">
+            Nicio zi cu date în ultimele 30 de zile.
+        </p>
+        <button v-if="emptyCount > 0" type="button"
+                class="mt-3 h-12 w-full rounded-2xl bg-white/5 text-sm font-semibold text-white/60 active:scale-[0.98]"
+                @click="showEmpty = !showEmpty">
+            {{ showEmpty ? 'Ascunde zilele goale' : `Arată și zilele goale (${emptyCount})` }}
+        </button>
     </FitLayout>
 </template>

@@ -47,10 +47,19 @@ function save() {
         <MealItemsEditor v-else :items="list.items.value" @grams="list.setGrams" @remove="list.remove"/>
 
         <p v-if="form.errors.items" class="mt-3 text-sm text-rose">{{ form.errors.items }}</p>
-        <button type="button" :disabled="form.processing || !list.items.value.length"
-                class="mt-5 h-14 w-full rounded-2xl bg-lime text-base font-extrabold text-ink active:scale-[0.98] disabled:opacity-50"
-                @click="save">
-            {{ form.processing ? 'Se salvează…' : 'Salvează modificările' }}
-        </button>
+
+        <template #footer>
+            <div class="flex items-center gap-3">
+                <div class="shrink-0">
+                    <p class="text-[11px] font-semibold uppercase tracking-wider text-white/45">Total</p>
+                    <p class="text-xl font-extrabold leading-tight">{{ list.totals.value.calories.toLocaleString('ro-RO') }} <span class="text-xs font-semibold text-white/50">kcal</span></p>
+                </div>
+                <button type="button" :disabled="form.processing || !list.items.value.length"
+                        class="h-14 flex-1 rounded-2xl bg-lime text-base font-extrabold text-ink active:scale-[0.98] disabled:opacity-50"
+                        @click="save">
+                    {{ form.processing ? 'Se salvează…' : 'Salvează modificările' }}
+                </button>
+            </div>
+        </template>
     </FitLayout>
 </template>

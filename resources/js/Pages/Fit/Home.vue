@@ -131,20 +131,21 @@ function removeMeal(meal) {
                 </div>
             </div>
 
-            <div class="mt-5 grid grid-cols-4 gap-3">
+            <div class="mt-5 grid grid-cols-4 gap-2.5">
                 <div v-for="macro in macros" :key="macro.label">
                     <div class="h-1.5 overflow-hidden rounded-full bg-white/10">
                         <div class="h-full rounded-full transition-all duration-700" :class="macro.bar"
                              :style="{width: `${macro.pct}%`}"></div>
                     </div>
-                    <p class="mt-2 text-lg font-extrabold leading-none">{{ macro.value }}<span class="text-xs font-semibold text-white/50"> {{ macro.goal ? `/ ${macro.goal} g` : 'g' }}</span></p>
-                    <p class="mt-1 text-[11px] font-medium text-white/50">{{ macro.label }}</p>
+                    <p class="mt-2 text-lg font-extrabold leading-none">{{ macro.value }}<span class="text-xs font-semibold text-white/50"> g</span></p>
+                    <p class="mt-1 truncate text-[11px] font-medium text-white/50">{{ macro.label }}</p>
+                    <p v-if="macro.goal" class="text-[10px] text-white/35">din {{ macro.goal }} g</p>
                 </div>
             </div>
         </section>
 
         <div class="mt-4 grid grid-cols-2 gap-4">
-            <button type="button" class="rounded-[1.75rem] border border-white/10 bg-panel p-4 text-left transition active:scale-[0.98]"
+            <button type="button" class="flex flex-col justify-start rounded-[1.75rem] border border-white/10 bg-panel p-4 text-left transition active:scale-[0.98]"
                     @click="openSteps">
                 <div class="flex items-center justify-between">
                     <span class="text-xs font-semibold uppercase tracking-wider text-white/50">Pași</span>
@@ -218,18 +219,18 @@ function removeMeal(meal) {
                         <FireIcon v-else class="size-7"/>
                     </div>
                     <div class="min-w-0 flex-1">
-                        <p class="truncate font-bold leading-tight">{{ meal.title }}</p>
+                        <p class="line-clamp-2 font-bold leading-tight">{{ meal.title }}</p>
                         <p class="mt-0.5 text-xs text-white/45">
                             <template v-if="isToday">{{ meal.time }} · </template>P {{ meal.protein }} · C {{ meal.carbs }} · G {{ meal.fat }} · F {{ meal.fiber }}
                         </p>
                         <p class="mt-1 text-sm font-extrabold text-lime">{{ fmt(meal.calories) }} kcal</p>
                     </div>
                     <div class="flex shrink-0 flex-col">
-                        <Link :href="`/meals/${meal.id}/edit`" class="rounded-full p-2 text-white/35 transition active:scale-90 active:text-lime"
+                        <Link :href="`/meals/${meal.id}/edit`" class="flex size-11 items-center justify-center rounded-full text-white/35 transition active:scale-90 active:text-lime"
                               aria-label="Editează masa">
                             <PencilSquareIcon class="size-5"/>
                         </Link>
-                        <button type="button" class="rounded-full p-2 text-white/35 transition active:scale-90 active:text-rose"
+                        <button type="button" class="flex size-11 items-center justify-center rounded-full text-white/35 transition active:scale-90 active:text-rose"
                                 aria-label="Șterge masa" @click="removeMeal(meal)">
                             <TrashIcon class="size-5"/>
                         </button>

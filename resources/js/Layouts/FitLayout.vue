@@ -36,15 +36,15 @@ onBeforeUnmount(() => clearTimeout(timer));
 </script>
 
 <template>
-    <div class="relative min-h-[100dvh] overflow-x-hidden bg-ink text-white">
+    <div class="relative min-h-[100dvh] overflow-x-hidden bg-ink text-white [-webkit-tap-highlight-color:transparent] [touch-action:manipulation]">
         <div class="pointer-events-none absolute inset-x-0 top-0 h-72 bg-[radial-gradient(60%_60%_at_50%_0%,rgba(184,243,74,0.13),transparent)]"></div>
 
-        <div class="relative mx-auto min-h-[100dvh] max-w-md" :class="hideNav ? 'pb-10' : 'pb-32'">
+        <div class="relative mx-auto min-h-[100dvh] max-w-md" :class="$slots.footer ? 'pb-44' : hideNav ? 'pb-10' : 'pb-32'">
             <header class="pt-safe px-5">
                 <div class="flex items-center justify-between gap-3 pb-4 pt-5">
                     <div class="flex min-w-0 items-center gap-3">
                         <Link v-if="back" :href="back" aria-label="Înapoi"
-                              class="-ml-1 rounded-full bg-white/5 p-2 text-white/80">
+                              class="-ml-1 flex size-11 shrink-0 items-center justify-center rounded-full bg-white/5 text-white/80 active:scale-95">
                             <ChevronLeftIcon class="size-5"/>
                         </Link>
                         <div class="min-w-0">
@@ -73,6 +73,14 @@ onBeforeUnmount(() => clearTimeout(timer));
                 </div>
             </div>
         </Transition>
+
+        <div v-if="$slots.footer" class="fixed inset-x-0 bottom-0 z-40 mx-auto max-w-md">
+            <div class="pb-safe border-t border-white/10 bg-panel/95 backdrop-blur-xl">
+                <div class="px-5 py-3">
+                    <slot name="footer"/>
+                </div>
+            </div>
+        </div>
 
         <nav v-if="!hideNav" class="fixed inset-x-0 bottom-0 z-40 mx-auto max-w-md">
             <div class="pb-safe border-t border-white/10 bg-panel/90 backdrop-blur-xl">

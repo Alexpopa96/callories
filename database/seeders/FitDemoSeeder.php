@@ -11,7 +11,7 @@ class FitDemoSeeder extends Seeder
 {
     /**
      * Accounts for the calorie app: plain `user` role, no admin access.
-     * Running it again resets every account to zero (no meals, steps or water).
+     * Running it again resets every account to zero (no meals, steps, water, weight, favorites or body data).
      */
     public function run(): void
     {
@@ -32,6 +32,16 @@ class FitDemoSeeder extends Seeder
                     'calorie_goal' => 2000,
                     'steps_goal' => 10000,
                     'water_goal_ml' => 2500,
+                    'protein_goal_g' => null,
+                    'carbs_goal_g' => null,
+                    'fat_goal_g' => null,
+                    'sex' => null,
+                    'birth_date' => null,
+                    'height_cm' => null,
+                    'activity_level' => 'light',
+                    'goal_type' => 'maintain',
+                    'remind_meals' => false,
+                    'remind_water' => false,
                 ]
             );
 
@@ -39,6 +49,9 @@ class FitDemoSeeder extends Seeder
 
             $user->meals()->delete();
             $user->dailyLogs()->delete();
+            $user->weightLogs()->delete();
+            $user->favoriteFoods()->delete();
+            $user->pushSubscriptions()->delete();
         }
     }
 }

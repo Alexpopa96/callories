@@ -20,7 +20,7 @@ const tabs = [
     {key: 'recent', label: 'Recente'},
     {key: 'favorites', label: 'Favorite'},
     {key: 'manual', label: 'Manual'},
-    {key: 'barcode', label: 'Cod de bare'},
+    {key: 'barcode', label: 'Cod bare'},
 ];
 
 const tab = ref(props.recent.length ? 'recent' : 'manual');
@@ -118,7 +118,7 @@ const fmt = (value) => Math.round(value).toLocaleString('ro-RO');
                :back="`/today?date=${date}`" hide-nav>
         <div class="flex gap-1.5 rounded-2xl bg-white/5 p-1">
             <button v-for="t in tabs" :key="t.key" type="button"
-                    class="h-10 flex-1 rounded-xl text-xs font-bold transition"
+                    class="h-11 flex-1 rounded-xl text-[13px] font-bold transition"
                     :class="tab === t.key ? 'bg-lime text-ink' : 'text-white/55'" @click="tab = t.key">
                 {{ t.label }}
             </button>
@@ -158,7 +158,7 @@ const fmt = (value) => Math.round(value).toLocaleString('ro-RO');
                             </span>
                             <span class="shrink-0 text-sm font-extrabold text-lime">{{ fmt(food.calories) }} kcal</span>
                         </button>
-                        <button type="button" aria-label="Șterge din favorite" class="rounded-full p-2 text-white/35 active:text-rose"
+                        <button type="button" aria-label="Șterge din favorite" class="flex size-11 items-center justify-center rounded-full text-white/35 active:text-rose"
                                 @click="removeFavorite(food)">
                             <TrashIcon class="size-5"/>
                         </button>
@@ -244,13 +244,21 @@ const fmt = (value) => Math.round(value).toLocaleString('ro-RO');
             <input v-model="title" type="text" maxlength="120" placeholder="Nume masă (opțional)"
                    class="mt-3 h-12 w-full rounded-2xl border border-white/10 bg-white/5 px-4 text-base text-white placeholder:text-white/30 focus:border-lime focus:ring-0"/>
             <p v-if="form.errors.items || form.errors.date" class="mt-3 text-sm text-rose">{{ form.errors.items || form.errors.date }}</p>
-
-            <button type="button" :disabled="form.processing"
-                    class="mt-4 h-14 w-full rounded-2xl bg-lime text-base font-extrabold text-ink shadow-[0_12px_30px_-10px_rgba(184,243,74,0.7)] active:scale-[0.98] disabled:opacity-50"
-                    @click="save">
-                {{ form.processing ? 'Se salvează…' : 'Salvează masa' }}
-            </button>
         </section>
+
+        <template v-if="meal.items.value.length" #footer>
+            <div class="flex items-center gap-3">
+                <div class="shrink-0">
+                    <p class="text-[11px] font-semibold uppercase tracking-wider text-white/45">Total</p>
+                    <p class="text-xl font-extrabold leading-tight">{{ meal.totals.value.calories.toLocaleString('ro-RO') }} <span class="text-xs font-semibold text-white/50">kcal</span></p>
+                </div>
+                <button type="button" :disabled="form.processing"
+                        class="h-14 flex-1 rounded-2xl bg-lime text-base font-extrabold text-ink active:scale-[0.98] disabled:opacity-50"
+                        @click="save">
+                    {{ form.processing ? 'Se salvează…' : 'Salvează masa' }}
+                </button>
+            </div>
+        </template>
 
         <BarcodeScanner v-if="scanning" @detected="onDetected" @close="scanning = false"/>
     </FitLayout>

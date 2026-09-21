@@ -104,14 +104,19 @@ const list = computed(() => props.logs.slice().reverse());
         </section>
 
         <h2 class="mb-3 mt-6 text-lg font-extrabold tracking-tight">Adaugă măsurătoare</h2>
-        <form class="flex gap-2" @submit.prevent="save">
-            <input v-model="weight" type="text" inputmode="decimal" placeholder="kg"
-                   class="h-14 min-w-0 flex-1 rounded-2xl border border-white/10 bg-white/5 px-4 text-xl font-extrabold text-white placeholder:text-base placeholder:font-normal placeholder:text-white/30 focus:border-lime focus:ring-0"/>
-            <input v-model="date" type="date" :max="today"
-                   class="h-14 w-40 rounded-2xl border border-white/10 bg-white/5 px-3 text-sm text-white focus:border-lime focus:ring-0"/>
-            <button type="submit" :disabled="saving" class="h-14 rounded-2xl bg-lime px-5 font-extrabold text-ink active:scale-95 disabled:opacity-50">
-                Salvează
-            </button>
+        <form class="space-y-3" @submit.prevent="save">
+            <div class="flex gap-2">
+                <input v-model="weight" type="text" inputmode="decimal" placeholder="Greutate (kg)"
+                       class="h-14 min-w-0 flex-1 rounded-2xl border border-white/10 bg-white/5 px-4 text-xl font-extrabold text-white placeholder:text-base placeholder:font-normal placeholder:text-white/30 focus:border-lime focus:ring-0"/>
+                <button type="submit" :disabled="saving" class="h-14 shrink-0 rounded-2xl bg-lime px-6 font-extrabold text-ink active:scale-95 disabled:opacity-50">
+                    Salvează
+                </button>
+            </div>
+            <label class="flex h-12 items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4">
+                <span class="text-sm font-semibold text-white/55">Data</span>
+                <input v-model="date" type="date" :max="today"
+                       class="border-0 bg-transparent p-0 text-right text-base font-bold text-white focus:ring-0"/>
+            </label>
         </form>
 
         <ul v-if="list.length" class="mt-6 space-y-2">
@@ -119,7 +124,7 @@ const list = computed(() => props.logs.slice().reverse());
                 <span class="font-semibold text-white/70">{{ log.label }}</span>
                 <span class="flex items-center gap-3">
                     <span class="font-extrabold">{{ log.weightKg.toLocaleString('ro-RO') }} kg</span>
-                    <button type="button" aria-label="Șterge" class="text-white/35 active:text-rose" @click="remove(log)">
+                    <button type="button" aria-label="Șterge" class="flex size-11 items-center justify-center text-white/35 active:text-rose" @click="remove(log)">
                         <TrashIcon class="size-5"/>
                     </button>
                 </span>

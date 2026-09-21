@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ro" class="bg-ink">
+<html lang="ro" class="overscroll-none bg-ink">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">

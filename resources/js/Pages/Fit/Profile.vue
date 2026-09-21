@@ -3,6 +3,7 @@ import {computed, ref, watch} from 'vue';
 import {Head, Link, router, useForm, usePage} from '@inertiajs/vue3';
 import FitLayout from '@/Layouts/FitLayout.vue';
 import BottomSheet from '@/Components/Fit/BottomSheet.vue';
+import Section from '@/Components/Fit/Section.vue';
 import {disablePush, enablePush, pushSupported} from '@/Composables/usePush.js';
 import {
     ArrowDownTrayIcon,
@@ -138,8 +139,8 @@ const logout = () => router.post('/logout');
             <ChevronRightIcon class="size-5 text-white/35"/>
         </Link>
 
-        <h2 class="mb-3 mt-7 text-lg font-extrabold tracking-tight">Calculează-ți obiectivele</h2>
-        <form class="space-y-3 rounded-[1.5rem] border border-white/5 bg-panel p-4" @submit.prevent="saveBody">
+        <Section title="Calculează-ți obiectivele" :open="!suggestion">
+        <form class="space-y-3" @submit.prevent="saveBody">
             <div class="grid grid-cols-2 gap-3">
                 <label class="block">
                     <span class="text-xs font-semibold uppercase tracking-wider text-white/50">Sex</span>
@@ -200,8 +201,9 @@ const logout = () => router.post('/logout');
             </button>
         </section>
         <p v-else class="mt-3 text-xs text-white/40">Completează toate câmpurile, inclusiv greutatea, ca să primești o recomandare.</p>
+        </Section>
 
-        <h2 class="mb-3 mt-7 text-lg font-extrabold tracking-tight">Obiective zilnice</h2>
+        <h2 class="mb-3 mt-6 text-lg font-extrabold tracking-tight">Obiective zilnice</h2>
         <form class="space-y-3" @submit.prevent="save">
             <label v-for="field in fields" :key="field.key" class="block rounded-[1.5rem] border border-white/5 bg-panel p-4">
                 <span class="text-xs font-semibold uppercase tracking-wider text-white/50">{{ field.label }}</span>
@@ -233,8 +235,8 @@ const logout = () => router.post('/logout');
             </button>
         </form>
 
-        <h2 class="mb-3 mt-7 text-lg font-extrabold tracking-tight">Notificări</h2>
-        <div class="space-y-2 rounded-[1.5rem] border border-white/5 bg-panel p-4">
+        <Section title="Notificări">
+        <div class="space-y-4">
             <label v-for="item in [{key: 'meals', label: 'Reminder pentru mese', hint: 'La 13:00 dacă nu ai mâncat și la 20:00 dacă ești sub jumătate din obiectiv'}, {key: 'water', label: 'Reminder pentru apă', hint: 'La 11:00, 15:00 și 19:00 când ești în urma obiectivului'}]"
                    :key="item.key" class="flex items-start justify-between gap-4">
                 <span>
@@ -250,15 +252,20 @@ const logout = () => router.post('/logout');
             </p>
             <p v-if="pushError" class="text-sm text-rose">{{ pushError }}</p>
         </div>
+        </Section>
 
-        <h2 class="mb-3 mt-7 text-lg font-extrabold tracking-tight">Datele tale</h2>
-        <a href="/me/export" class="flex items-center gap-3 rounded-[1.5rem] border border-white/10 bg-panel p-4 active:scale-[0.99]">
+        <Section title="Datele tale">
+        <a href="/me/export" class="flex items-center gap-3 rounded-2xl bg-white/5 p-3 active:scale-[0.99]">
             <span class="flex size-10 items-center justify-center rounded-full bg-aqua/15 text-aqua"><ArrowDownTrayIcon class="size-5"/></span>
             <span class="flex-1">
                 <span class="block font-bold">Exportă datele</span>
                 <span class="block text-xs text-white/45">Mese, pași, apă, greutate și obiective, într-un fișier JSON</span>
             </span>
         </a>
+        <button type="button" class="mt-2 h-12 w-full rounded-2xl text-sm font-semibold text-rose/80 active:bg-rose/10" @click="deleteSheet = true">
+            Șterge contul
+        </button>
+        </Section>
 
         <a v-if="canAdmin" href="/dashboard"
            class="mt-6 flex h-12 items-center justify-center rounded-2xl bg-white/5 text-sm font-semibold text-white/70">
@@ -269,10 +276,6 @@ const logout = () => router.post('/logout');
                 class="mt-3 flex h-14 w-full items-center justify-center gap-2 rounded-2xl border border-rose/30 text-base font-bold text-rose active:scale-[0.98]"
                 @click="logout">
             <ArrowRightStartOnRectangleIcon class="size-5"/> Ieși din cont
-        </button>
-
-        <button type="button" class="mt-3 h-12 w-full text-sm font-semibold text-white/40 active:text-rose" @click="deleteSheet = true">
-            Șterge contul
         </button>
 
         <BottomSheet :open="deleteSheet" title="Ștergi contul?" @close="deleteSheet = false">
