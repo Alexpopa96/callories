@@ -15,7 +15,15 @@ class HandleInertiaRequests extends Middleware
      *
      * @var string
      */
-    protected $rootView = 'app';
+    protected $rootView = 'fit';
+
+    /**
+     * The admin panel keeps the Argon template; everything else uses the mobile-first shell.
+     */
+    public function rootView(Request $request): string
+    {
+        return $request->is('dashboard', 'administration/*', 'user/*') ? 'app' : $this->rootView;
+    }
 
     /**
      * Determine the current asset version.
@@ -58,7 +66,7 @@ class HandleInertiaRequests extends Middleware
                 ];
             },
             'impersonate' => Session::get('impersonate'),
-            'role_id' => Auth::user() ? Auth::user()->roles()->first()->id : null
+            'role_id' => Auth::user() ? Auth::user()->roles()->first()?->id : null
         ];
     }
 }

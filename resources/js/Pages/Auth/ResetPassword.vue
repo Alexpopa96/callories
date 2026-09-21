@@ -1,11 +1,7 @@
 <script setup>
-import { Head, useForm } from '@inertiajs/vue3';
-import AuthenticationCard from '@/Components/AuthenticationCard.vue';
-import AuthenticationCardLogo from '@/Components/AuthenticationCardLogo.vue';
-import InputError from '@/Components/InputError.vue';
-import InputLabel from '@/Components/InputLabel.vue';
-import PrimaryButton from '@/Components/PrimaryButton.vue';
-import TextInput from '@/Components/TextInput.vue';
+import {Head, Link, useForm} from '@inertiajs/vue3';
+import AuthShell from '@/Components/Fit/AuthShell.vue';
+import AuthInput from '@/Components/Fit/AuthInput.vue';
 
 const props = defineProps({
     email: String,
@@ -27,59 +23,25 @@ const submit = () => {
 </script>
 
 <template>
-    <Head title="Reset Password" />
+    <Head title="Parolă nouă"/>
+    <AuthShell title="Alege o parolă nouă" subtitle="Setează parola cu care te vei conecta de acum.">
+        <form class="space-y-4" @submit.prevent="submit">
+            <AuthInput v-model="form.email" type="email" label="Email" autocomplete="username"
+                       :error="form.errors.email"/>
+            <AuthInput v-model="form.password" type="password" label="Parola nouă" placeholder="Minim 8 caractere"
+                       autocomplete="new-password" :error="form.errors.password" autofocus/>
+            <AuthInput v-model="form.password_confirmation" type="password" label="Confirmă parola"
+                       placeholder="Repetă parola" autocomplete="new-password"
+                       :error="form.errors.password_confirmation"/>
 
-    <AuthenticationCard>
-        <template #logo>
-            <AuthenticationCardLogo />
-        </template>
-
-        <form @submit.prevent="submit">
-            <div>
-                <InputLabel for="email" value="Email" />
-                <TextInput
-                    id="email"
-                    v-model="form.email"
-                    type="email"
-                    class="mt-1 block w-full"
-                    required
-                    autofocus
-                    autocomplete="username"
-                />
-                <InputError class="mt-2" :message="form.errors.email" />
-            </div>
-
-            <div class="mt-4">
-                <InputLabel for="password" value="Password" />
-                <TextInput
-                    id="password"
-                    v-model="form.password"
-                    type="password"
-                    class="mt-1 block w-full"
-                    required
-                    autocomplete="new-password"
-                />
-                <InputError class="mt-2" :message="form.errors.password" />
-            </div>
-
-            <div class="mt-4">
-                <InputLabel for="password_confirmation" value="Confirm Password" />
-                <TextInput
-                    id="password_confirmation"
-                    v-model="form.password_confirmation"
-                    type="password"
-                    class="mt-1 block w-full"
-                    required
-                    autocomplete="new-password"
-                />
-                <InputError class="mt-2" :message="form.errors.password_confirmation" />
-            </div>
-
-            <div class="flex items-center justify-end mt-4">
-                <PrimaryButton :class="{ 'opacity-25': form.processing }" :disabled="form.processing">
-                    Reset Password
-                </PrimaryButton>
-            </div>
+            <button type="submit" :disabled="form.processing"
+                    class="mt-2 h-14 w-full rounded-2xl bg-gradient-to-r from-lime to-[#7DE86B] text-base font-extrabold text-ink shadow-[0_12px_30px_-10px_rgba(184,243,74,0.7)] transition active:scale-[0.98] disabled:opacity-60">
+                {{ form.processing ? 'Se salvează…' : 'Salvează parola' }}
+            </button>
         </form>
-    </AuthenticationCard>
+
+        <template #footer>
+            <Link href="/login" class="font-bold text-lime">Înapoi la conectare</Link>
+        </template>
+    </AuthShell>
 </template>

@@ -10,6 +10,17 @@
             <span class="ml-1 duration-300 opacity-100 pointer-events-none ease text-gray-700">Dashboard</span>
         </Link>
     </li>
+    <li class="mt-0.5 w-full">
+        <Link @click="$emit('closeSideBar')" :class="{'bg-blue-500/13 rounded-lg': isUrl('today')}"
+              class="dark:text-white dark:opacity-80 text-sm ease-nav-brand my-0 mx-2 flex items-center whitespace-nowrap px-4 transition-colors"
+              href="/today">
+            <div
+                class="flex md:h-10 md:w-10 h-8 w-8 md:text-base text-sm items-center justify-center rounded-lg bg-center stroke-0 text-center xl:p-2.5">
+                <CameraIcon class="size-6 text-emerald-500"/>
+            </div>
+            <span class="ml-1 duration-300 opacity-100 pointer-events-none ease text-gray-700">Calorii</span>
+        </Link>
+    </li>
     <!-- SEPARATOR -->
     <div v-if="$page.props.auth.can.viewAdministration">
         <li class="w-full my-4">
@@ -61,12 +72,13 @@ import {
     UserGroupIcon,
     KeyIcon,
     WrenchScrewdriverIcon,
-    PresentationChartBarIcon
+    PresentationChartBarIcon,
+    CameraIcon
 } from "@heroicons/vue/24/outline/index.js";
 
 export default {
     components: {
-        Link, UserGroupIcon, KeyIcon, WrenchScrewdriverIcon, PresentationChartBarIcon
+        Link, UserGroupIcon, KeyIcon, WrenchScrewdriverIcon, PresentationChartBarIcon, CameraIcon
     },
 
     emits: ['closeSideBar'],

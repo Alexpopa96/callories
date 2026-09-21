@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
@@ -33,7 +34,10 @@ class User extends Authenticatable
         'password',
         'status',
         'phone',
-        'obs'
+        'obs',
+        'calorie_goal',
+        'steps_goal',
+        'water_goal_ml',
     ];
 
     /**
@@ -75,6 +79,25 @@ class User extends Authenticatable
         return $this->roles
             ->map->permissions
             ->flatten()->pluck('name')->unique();
+    }
+
+    public function goals(): array
+    {
+        return [
+            'calories' => (int) $this->calorie_goal,
+            'steps' => (int) $this->steps_goal,
+            'waterMl' => (int) $this->water_goal_ml,
+        ];
+    }
+
+    public function meals(): HasMany
+    {
+        return $this->hasMany(Meal::class);
+    }
+
+    public function dailyLogs(): HasMany
+    {
+        return $this->hasMany(DailyLog::class);
     }
 
     public function userRole()

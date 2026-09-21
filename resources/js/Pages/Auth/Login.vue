@@ -1,8 +1,7 @@
 <script setup>
-import { Head, Link, useForm } from '@inertiajs/vue3';
-import { ref, onMounted, onUnmounted } from 'vue';
-import AuthenticationCard from '@/Components/AuthenticationCard.vue';
-import InputError from '@/Components/InputError.vue';
+import {Head, Link, useForm} from '@inertiajs/vue3';
+import AuthShell from '@/Components/Fit/AuthShell.vue';
+import AuthInput from '@/Components/Fit/AuthInput.vue';
 
 defineProps({
     canResetPassword: Boolean,
@@ -16,104 +15,46 @@ const form = useForm({
 });
 
 const submit = () => {
-    form.transform(data => ({
+    form.transform((data) => ({
         ...data,
         remember: form.remember ? 'on' : '',
     })).post(route('login'), {
         onFinish: () => form.reset('password'),
     });
 };
-
-const parallaxContainer = ref(null);
-
-const handleMouseMove = (event) => {
-    if (parallaxContainer.value) {
-        const { clientX, clientY } = event;
-        const { offsetWidth, offsetHeight } = parallaxContainer.value;
-        const moveX = (clientX / offsetWidth - 0.5) * 50;
-        const moveY = (clientY / offsetHeight - 0.5) * 50;
-
-        parallaxContainer.value.style.transform = `translate(${moveX}px, ${moveY}px)`;
-        parallaxContainer.value.style.filter = `blur(${Math.abs(moveX) * 0.1}px)`;
-    }
-};
-
-onMounted(() => {
-    window.addEventListener('mousemove', handleMouseMove);
-});
-
-onUnmounted(() => {
-    window.removeEventListener('mousemove', handleMouseMove);
-});
 </script>
 
 <template>
-    <Head title="Log in" />
-    <section>
-        <div class="relative flex items-center min-h-screen p-0 overflow-hidden bg-center bg-cover">
-            <div class="container z-1">
-                <div class="flex flex-wrap -mx-3">
-                    <div
-                        class="flex flex-col w-full max-w-full px-3 mx-auto lg:mx-0 shrink-0 md:flex-0 md:w-7/12 lg:w-5/12 xl:w-4/12">
-                        <div
-                            class="relative flex flex-col min-w-0 break-words bg-transparent border-0 shadow-none lg:py4 rounded-2xl bg-clip-border">
-                            <div class="p-6 pb-0 mb-0">
-                                <h4 class="font-bold text-xl">Log in</h4>
-                                <p class="mb-0">Introdu adresa ta de email si parola.</p>
-                            </div>
-                            <div class="flex-auto p-6">
-                                <form @submit.prevent="submit">
-                                    <div class="mb-4">
-                                        <input v-model="form.email" type="email" placeholder="Email"
-                                               :class="{ 'border border-red-500': form.errors.email }"
-                                               class="focus:shadow-primary-outline text-sm leading-5.6 ease block w-full appearance-none rounded-lg border border-solid border-gray-300 bg-white bg-clip-padding p-3 font-normal text-gray-700 outline-none transition-all placeholder:text-gray-500 focus:border-blue-300 focus:outline-none" />
-                                        <InputError class="mt-2" :message="form.errors.email" />
-                                    </div>
-                                    <div class="mb-4">
-                                        <input v-model="form.password" type="password" placeholder="Parola"
-                                               :class="{ 'border border-red-500': form.errors.password }"
-                                               class="focus:shadow-primary-outline text-sm leading-5.6 ease block w-full appearance-none rounded-lg border border-solid border-gray-300 bg-white bg-clip-padding p-3 font-normal text-gray-700 outline-none transition-all placeholder:text-gray-500 focus:border-blue-300 focus:outline-none" />
-                                        <InputError class="mt-2" :message="form.errors.password" />
-                                    </div>
-                                    <div class="flex items-center pl-12 mb-0.5 text-left min-h-6">
-                                        <input v-model="form.remember" id="rememberMe"
-                                               class="mt-0.5 rounded-full duration-250 ease-in-out after:rounded-circle after:shadow-2xl after:duration-250 checked:after:translate-x-5.3 h-5 relative float-left -ml-12 w-10 cursor-pointer appearance-none border border-solid border-gray-200 bg-zinc-700/10 bg-none bg-contain bg-left bg-no-repeat align-top transition-all after:absolute after:top-px after:h-4 after:w-4 after:translate-x-px after:bg-white after:content-[''] checked:border-blue-500/95 checked:bg-blue-500/95 checked:bg-none checked:bg-right"
-                                               type="checkbox" />
-                                        <label
-                                            class="ml-2 font-normal cursor-pointer select-none text-sm text-slate-700"
-                                            for="rememberMe">Tine-ma minte</label>
-                                    </div>
-                                    <div class="text-center" :class="{ 'opacity-25': form.processing }"
-                                         :disabled="form.processing">
-                                        <button type="submit"
-                                                class="inline-block w-full px-16 py-3.5 mt-6 mb-0 font-bold leading-normal text-center text-white align-middle transition-all bg-blue-500 border-0 rounded-lg cursor-pointer hover:-translate-y-px active:opacity-85 hover:shadow-xs text-sm ease-in tracking-tight-rem shadow-md bg-150 bg-x-25">
-                                            Conecteaza-ma
-                                        </button>
-                                    </div>
-                                </form>
-                            </div>
-                            <div
-                                class="border-black/12.5 rounded-b-2xl border-t-0 border-solid p-6 text-center pt-0 px-1 sm:px-6">
-                                <p class="mx-auto mb-6 leading-normal text-sm">Nu ai un cont?
-                                    <Link href="/register"
-                                          class="font-semibold text-transparent bg-clip-text bg-gradient-to-tl from-blue-500 to-sky-500">
-                                        &nbsp;Inregistreaza-ma
-                                    </Link>
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                    <div
-                        class="absolute top-0 right-0 flex-col justify-center hidden w-6/12 h-full max-w-full px-3 pr-0 my-auto text-center flex-0 lg:flex">
-                        <div
-                            ref="parallaxContainer"
-                            class="relative flex flex-col justify-center -mb-20 -mr-20 h-full bg-cover px-24 overflow-hidden bg-[url('https://static.vecteezy.com/system/resources/previews/038/776/964/non_2x/ai-generated-of-marble-roman-greek-statue-against-transparent-background-free-png.png')] transition-all duration-300 ease-out">
-                            <span
-                                class="absolute top-0 left-0 w-full h-full bg-center bg-cover opacity-60"></span>
-                        </div>
-                    </div>
-                </div>
+    <Head title="Conectare"/>
+    <AuthShell title="Bine ai revenit" subtitle="Intră în cont și vezi cum a fost ziua ta.">
+        <p v-if="status" class="mb-4 rounded-2xl bg-lime/10 px-4 py-3 text-sm font-medium text-lime">{{ status }}</p>
+
+        <form class="space-y-4" @submit.prevent="submit">
+            <AuthInput v-model="form.email" type="email" label="Email" placeholder="nume@exemplu.ro"
+                       autocomplete="username" inputmode="email" :error="form.errors.email" autofocus/>
+            <AuthInput v-model="form.password" type="password" label="Parola" placeholder="Parola ta"
+                       autocomplete="current-password" :error="form.errors.password"/>
+
+            <div class="flex items-center justify-between pt-1">
+                <label class="flex cursor-pointer items-center gap-3 text-sm text-white/70">
+                    <input v-model="form.remember" type="checkbox" class="peer sr-only"/>
+                    <span class="relative h-6 w-11 rounded-full bg-white/10 transition peer-checked:bg-lime after:absolute after:left-0.5 after:top-0.5 after:size-5 after:rounded-full after:bg-white after:transition peer-checked:after:translate-x-5 peer-checked:after:bg-ink"></span>
+                    Ține-mă minte
+                </label>
+                <Link v-if="canResetPassword" href="/forgot-password" class="text-sm font-semibold text-lime">
+                    Ai uitat parola?
+                </Link>
             </div>
-        </div>
-    </section>
+
+            <button type="submit" :disabled="form.processing"
+                    class="mt-2 h-14 w-full rounded-2xl bg-gradient-to-r from-lime to-[#7DE86B] text-base font-extrabold text-ink shadow-[0_12px_30px_-10px_rgba(184,243,74,0.7)] transition active:scale-[0.98] disabled:opacity-60">
+                {{ form.processing ? 'Se conectează…' : 'Conectează-mă' }}
+            </button>
+        </form>
+
+        <template #footer>
+            Nu ai cont?
+            <Link href="/register" class="font-bold text-lime">Creează unul</Link>
+        </template>
+    </AuthShell>
 </template>

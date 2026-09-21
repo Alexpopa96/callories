@@ -23,7 +23,14 @@ export default {
                 'tableDark' : '#1F263C',
                 'textTableDark' : '#f3f4f6',
                 'textInputDark' : '#f3f4f6',
-                'borderInputDark' : '#4b5563'
+                'borderInputDark' : '#4b5563',
+                'ink': '#0A0E1A',
+                'panel': '#121A2B',
+                'panel2': '#1A2440',
+                'lime': '#B8F34A',
+                'sun': '#FF9F43',
+                'aqua': '#38BDF8',
+                'rose': '#FF5D8F',
             },
         }
     },
