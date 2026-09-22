@@ -5,21 +5,21 @@ namespace App\Services\Calories;
 use Anthropic\Client;
 use Anthropic\Core\Exceptions\APIException;
 
-class FoodPhotoAnalyzer
+class FoodTextAnalyzer
 {
     private const SYSTEM_PROMPT = <<<'TXT'
-Ești un nutriționist care estimează valorile nutriționale ale mâncării dintr-o fotografie.
-Identifică fiecare aliment sau preparat distinct din imagine, estimează porția în grame după aspectul
-vizual (farfurie, tacâmuri, ambalaje și alte obiecte de referință) și oferă valori nutriționale
-realiste pentru porția respectivă. Numele alimentelor se scriu în limba română.
-Pentru fiecare aliment, completează și pieces cu numărul de bucăți individuale vizibile în imagine
-(ex: 2 pentru două ouă, 3 pentru trei felii de pâine). Dacă alimentul nu se numără firesc în bucăți
-(ex: o porție de orez, o farfurie de supă), setează pieces=1. portion_grams rămâne greutatea totală
-pentru toate bucățile la un loc, nu greutatea unei singure bucăți.
-Dacă în imagine nu există mâncare sau băutură, setează is_food=false și lasă items gol.
-Setează confidence=low când porția sau ingredientele sunt greu de stabilit (preparate compuse,
-unghi prost, obiecte de referință lipsă). În notes menționează pe scurt ipotezele importante
-(ex: „am presupus că paste sunt fierte, cu sos de roșii”), maxim două propoziții.
+Ești un nutriționist care estimează valorile nutriționale ale unei mese descrise în text de utilizator.
+Identifică fiecare aliment sau preparat distinct din descriere, estimează porția în grame pe baza
+mărimilor uzuale de porție atunci când utilizatorul nu specifică o cantitate exactă, și oferă valori
+nutriționale realiste pentru porția respectivă. Numele alimentelor se scriu în limba română.
+Pentru fiecare aliment, completează și pieces cu numărul de bucăți individuale menționate sau
+subînțelese (ex: 2 pentru „2 ouă”, 3 pentru „3 felii de pâine”). Dacă alimentul nu se numără firesc
+în bucăți (ex: o porție de orez, o farfurie de supă), setează pieces=1. portion_grams rămâne
+greutatea totală pentru toate bucățile la un loc, nu greutatea unei singure bucăți.
+Dacă descrierea nu conține mâncare sau băutură, setează is_food=false și lasă items gol.
+Setează confidence=low când cantitățile sau ingredientele sunt greu de stabilit (descriere vagă,
+preparate compuse fără detalii). În notes menționează pe scurt ipotezele importante
+(ex: „am presupus o felie de pâine albă de 30 g”), maxim două propoziții.
 TXT;
 
     public function __construct(
@@ -37,7 +37,7 @@ TXT;
      *   notes: string
      * }
      */
-    public function analyze(string $imageBytes, string $mediaType): array
+    public function analyze(string $description): array
     {
         try {
             $message = $this->client->messages->create(
@@ -47,15 +47,7 @@ TXT;
                 messages: [[
                     'role' => 'user',
                     'content' => [
-                        [
-                            'type' => 'image',
-                            'source' => [
-                                'type' => 'base64',
-                                'mediaType' => $mediaType,
-                                'data' => base64_encode($imageBytes),
-                            ],
-                        ],
-                        ['type' => 'text', 'text' => 'Estimează valorile nutriționale pentru mâncarea din poză.'],
+                        ['type' => 'text', 'text' => $description],
                     ],
                 ]],
                 outputConfig: [
@@ -70,7 +62,7 @@ TXT;
         }
 
         if ($message->stopReason !== 'end_turn') {
-            throw new FoodAnalysisException('Analiza nu a putut fi finalizată. Încearcă cu altă poză.');
+            throw new FoodAnalysisException('Analiza nu a putut fi finalizată. Încearcă cu altă descriere.');
         }
 
         $data = null;

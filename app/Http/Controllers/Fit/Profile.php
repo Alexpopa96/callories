@@ -27,6 +27,7 @@ class Profile extends Controller
                 'weightKg' => $weight,
             ],
             'suggestion' => $calculator->suggest($user, $weight),
+            'adaptiveSuggestion' => $user->goalAdjustments()->where('status', 'pending')->latest()->first(),
             'reminders' => [
                 'meals' => $user->remind_meals,
                 'water' => $user->remind_water,

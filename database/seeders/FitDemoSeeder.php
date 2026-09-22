@@ -11,7 +11,8 @@ class FitDemoSeeder extends Seeder
 {
     /**
      * Accounts for the calorie app: plain `user` role, no admin access.
-     * Running it again resets every account to zero (no meals, steps, water, weight, favorites or body data).
+     * Running it again resets every account to zero (no meals, steps, water, weight, favorites, body data,
+     * challenges or goal adjustments).
      */
     public function run(): void
     {
@@ -52,6 +53,8 @@ class FitDemoSeeder extends Seeder
             $user->weightLogs()->delete();
             $user->favoriteFoods()->delete();
             $user->pushSubscriptions()->delete();
+            $user->challenges()->delete();
+            $user->goalAdjustments()->delete();
         }
     }
 }

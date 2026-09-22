@@ -110,6 +110,9 @@ async function onFileChange(event) {
         const {data} = await axios.post('/scan/analyze', body);
         result.value = data;
         list.set(data.items);
+        data.items.forEach((item, i) => {
+            if (item.pieces > 1) list.items.value[i]._pieceRatio = list.items.value[i].portion_grams / item.pieces;
+        });
         scansLeft.value = data.scans_left ?? null;
     } catch (e) {
         if (e.response?.data?.scans_left !== undefined) scansLeft.value = e.response.data.scans_left;

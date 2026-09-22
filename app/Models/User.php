@@ -141,9 +141,19 @@ class User extends Authenticatable
         return $this->hasOne(Challenge::class)->where('status', 'active');
     }
 
+    public function goalAdjustments(): HasMany
+    {
+        return $this->hasMany(GoalAdjustment::class);
+    }
+
     public function favoriteFoods(): HasMany
     {
         return $this->hasMany(FavoriteFood::class);
+    }
+
+    public function workouts(): HasMany
+    {
+        return $this->hasMany(Workout::class);
     }
 
     public function pushSubscriptions(): HasMany

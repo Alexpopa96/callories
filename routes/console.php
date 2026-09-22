@@ -9,3 +9,4 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote')->hourly();
 
 Schedule::command('fit:send-reminders')->hourlyAt(0);
+Schedule::command('fit:review-calorie-goals')->weeklyOn(1, '07:00');

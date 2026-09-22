@@ -82,6 +82,48 @@ const manualFields = [
     {key: 'fiber_g', label: 'Fibre (g)'},
 ];
 
+const description = ref('');
+const analyzingText = ref(false);
+const textError = ref(null);
+const textNotes = ref(null);
+const textsLeft = ref(null);
+const aiAdded = ref(false);
+const showManualFields = ref(true);
+const lastAiItems = ref([]);
+
+async function analyzeText() {
+    textError.value = null;
+    textNotes.value = null;
+    if (!description.value.trim()) return (textError.value = 'Scrie ce ai mâncat.');
+
+    analyzingText.value = true;
+    try {
+        const {data} = await axios.post('/meals/analyze-text', {description: description.value.trim()});
+        textsLeft.value = data.texts_left ?? null;
+        if (!data.is_food) {
+            textError.value = data.notes || 'Nu am găsit mâncare în descriere.';
+            return;
+        }
+        meal.removeItems(lastAiItems.value);
+        lastAiItems.value = data.items.map((item) => {
+            const added = meal.add(item);
+            if (item.pieces > 1) added._pieceRatio = added.portion_grams / item.pieces;
+            return added;
+        });
+        if (data.notes) textNotes.value = data.notes;
+        description.value = '';
+        aiAdded.value = true;
+        showManualFields.value = false;
+    } catch (e) {
+        if (e.response?.data?.texts_left !== undefined) textsLeft.value = e.response.data.texts_left;
+        textError.value = e.response?.data?.errors?.description?.[0]
+            ?? e.response?.data?.message
+            ?? 'A apărut o eroare. Încearcă din nou.';
+    } finally {
+        analyzingText.value = false;
+    }
+}
+
 const code = ref('');
 const looking = ref(false);
 const barcodeError = ref(null);
@@ -177,31 +219,67 @@ const fmt = (value) => Math.round(value).toLocaleString('ro-RO');
                 </ul>
             </template>
 
-            <form v-else-if="tab === 'manual'" class="space-y-3" @submit.prevent="addManual">
-                <input v-model="manual.name" type="text" maxlength="120" placeholder="Numele alimentului"
-                       class="h-13 w-full rounded-2xl border border-white/10 bg-white/5 px-4 text-base text-white placeholder:text-white/30 focus:border-lime focus:ring-0"/>
-                <label class="block">
-                    <span class="text-xs font-semibold uppercase tracking-wider text-white/50">Porție (g)</span>
-                    <input v-model.number="manual.portion_grams" type="number" inputmode="decimal" min="1"
-                           class="mt-1 h-12 w-full rounded-2xl border border-white/10 bg-white/5 px-4 text-base font-bold text-white focus:border-lime focus:ring-0"/>
-                </label>
-                <div class="grid grid-cols-2 gap-3">
-                    <label v-for="field in manualFields" :key="field.key" class="block" :class="field.key === 'calories' ? 'col-span-2' : ''">
-                        <span class="text-xs font-semibold uppercase tracking-wider text-white/50">{{ field.label }}</span>
-                        <input v-model="manual[field.key]" type="number" inputmode="decimal" min="0" step="0.1"
-                               class="mt-1 h-12 w-full rounded-2xl border border-white/10 bg-white/5 px-4 text-base font-bold text-white focus:border-lime focus:ring-0"/>
-                    </label>
-                </div>
-                <p class="text-xs text-white/40">Valorile sunt pentru porția de mai sus. Pe eticheta produselor găsești de obicei valorile la 100 g.</p>
-                <label class="flex items-center gap-2 text-sm text-white/70">
-                    <input v-model="saveAsFavorite" type="checkbox" class="size-5 rounded border-white/20 bg-white/5 text-lime focus:ring-0"/>
-                    Salvează și la favorite
-                </label>
-                <p v-if="manualError" class="text-sm text-rose">{{ manualError }}</p>
-                <button type="submit" class="h-12 w-full rounded-2xl bg-white/10 font-bold text-white active:scale-[0.98]">
-                    Adaugă în masă
+            <div v-else-if="tab === 'manual'" class="space-y-4">
+                <form class="space-y-2" @submit.prevent="analyzeText">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-white/50">Descrie ce ai mâncat</span>
+                    <textarea v-model="description" rows="2" maxlength="500"
+                              placeholder="ex: 2 ouă, o felie de pâine și un iaurt"
+                              class="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-base text-white placeholder:text-white/30 focus:border-lime focus:ring-0"/>
+                    <button type="submit" :disabled="analyzingText"
+                            class="h-12 w-full rounded-2xl bg-lime text-base font-extrabold text-ink active:scale-[0.98] disabled:opacity-50">
+                        {{ analyzingText ? 'Analizez…' : 'Analizează cu AI' }}
+                    </button>
+                    <p v-if="textError" class="text-sm text-rose">{{ textError }}</p>
+                    <p v-else-if="textNotes" class="text-sm text-white/55">{{ textNotes }}</p>
+                    <p v-if="textsLeft !== null" class="text-xs text-white/40">
+                        {{ textsLeft > 0 ? `${textsLeft} ${textsLeft === 1 ? 'analiză rămasă' : 'analize rămase'} azi` : 'Ai folosit toate analizele de azi' }}
+                    </p>
+                </form>
+
+                <button v-if="aiAdded && !showManualFields" type="button"
+                        class="text-xs font-semibold text-white/40 underline underline-offset-2"
+                        @click="showManualFields = true">
+                    Adaugă și un aliment câmp cu câmp
                 </button>
-            </form>
+
+                <template v-if="showManualFields">
+                    <div v-if="aiAdded" class="flex items-center gap-3 text-[11px] font-semibold uppercase tracking-wider text-white/30">
+                        <span class="h-px flex-1 bg-white/10"></span> câmp cu câmp <span class="h-px flex-1 bg-white/10"></span>
+                        <button type="button" class="shrink-0 normal-case tracking-normal text-white/40 underline underline-offset-2" @click="showManualFields = false">
+                            ascunde
+                        </button>
+                    </div>
+                    <div v-else class="flex items-center gap-3 text-[11px] font-semibold uppercase tracking-wider text-white/30">
+                        <span class="h-px flex-1 bg-white/10"></span> sau completează câmp cu câmp <span class="h-px flex-1 bg-white/10"></span>
+                    </div>
+
+                    <form class="space-y-3" @submit.prevent="addManual">
+                        <input v-model="manual.name" type="text" maxlength="120" placeholder="Numele alimentului"
+                               class="h-13 w-full rounded-2xl border border-white/10 bg-white/5 px-4 text-base text-white placeholder:text-white/30 focus:border-lime focus:ring-0"/>
+                        <label class="block">
+                            <span class="text-xs font-semibold uppercase tracking-wider text-white/50">Porție (g)</span>
+                            <input v-model.number="manual.portion_grams" type="number" inputmode="decimal" min="1"
+                                   class="mt-1 h-12 w-full rounded-2xl border border-white/10 bg-white/5 px-4 text-base font-bold text-white focus:border-lime focus:ring-0"/>
+                        </label>
+                        <div class="grid grid-cols-2 gap-3">
+                            <label v-for="field in manualFields" :key="field.key" class="block" :class="field.key === 'calories' ? 'col-span-2' : ''">
+                                <span class="text-xs font-semibold uppercase tracking-wider text-white/50">{{ field.label }}</span>
+                                <input v-model="manual[field.key]" type="number" inputmode="decimal" min="0" step="0.1"
+                                       class="mt-1 h-12 w-full rounded-2xl border border-white/10 bg-white/5 px-4 text-base font-bold text-white focus:border-lime focus:ring-0"/>
+                            </label>
+                        </div>
+                        <p class="text-xs text-white/40">Valorile sunt pentru porția de mai sus. Pe eticheta produselor găsești de obicei valorile la 100 g.</p>
+                        <label class="flex items-center gap-2 text-sm text-white/70">
+                            <input v-model="saveAsFavorite" type="checkbox" class="size-5 rounded border-white/20 bg-white/5 text-lime focus:ring-0"/>
+                            Salvează și la favorite
+                        </label>
+                        <p v-if="manualError" class="text-sm text-rose">{{ manualError }}</p>
+                        <button type="submit" class="h-12 w-full rounded-2xl bg-white/10 font-bold text-white active:scale-[0.98]">
+                            Adaugă în masă
+                        </button>
+                    </form>
+                </template>
+            </div>
 
             <div v-else class="space-y-3">
                 <div class="flex gap-2">

@@ -39,7 +39,7 @@ class DayStats
     /**
      * Per-day totals for the range, keyed by Y-m-d, newest day first.
      *
-     * @return array<string, array{date: string, calories: int, protein_g: float, carbs_g: float, fat_g: float, fiber_g: float, meals: int, steps: int, water_ml: int}>
+     * @return array<string, array{date: string, calories: int, protein_g: float, carbs_g: float, fat_g: float, fiber_g: float, meals: int, steps: int, water_ml: int, exercise_calories: int}>
      */
     public function range(User $user, CarbonImmutable $from, CarbonImmutable $to): array
     {
@@ -76,6 +76,7 @@ class DayStats
                 'meals' => (int) ($meal?->meals ?? 0),
                 'steps' => (int) ($log?->steps ?? 0),
                 'water_ml' => (int) ($log?->water_ml ?? 0),
+                'exercise_calories' => (int) ($log?->exercise_calories ?? 0),
             ];
         }
 

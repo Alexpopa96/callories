@@ -62,8 +62,13 @@ export function useMealItems(initial = []) {
         items,
         totals,
         set: (list) => (items.value = list.map(toEditable)),
-        add: (item) => items.value.push(toEditable(item)),
+        add: (item) => {
+            const editable = toEditable(item);
+            items.value.push(editable);
+            return editable;
+        },
         remove: (index) => items.value.splice(index, 1),
+        removeItems: (refs) => (items.value = items.value.filter((item) => !refs.includes(item))),
         setGrams: (index, grams) => rescale(items.value[index], grams),
         payload: () => items.value.map(toPayload),
     };

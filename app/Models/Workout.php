@@ -5,16 +5,15 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class DailyLog extends Model
+class Workout extends Model
 {
-    protected $fillable = ['user_id', 'date', 'steps', 'water_ml', 'exercise_calories'];
+    protected $fillable = ['user_id', 'date', 'title', 'exercises'];
 
     protected function casts(): array
     {
         return [
-            'steps' => 'integer',
-            'water_ml' => 'integer',
-            'exercise_calories' => 'integer',
+            'date' => 'date:Y-m-d',
+            'exercises' => 'array',
         ];
     }
 

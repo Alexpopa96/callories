@@ -51,6 +51,17 @@
     }
 }
 
+@keyframes typing-dot {
+    0%, 60%, 100% {
+        transform: translateY(0);
+        opacity: 0.5;
+    }
+    30% {
+        transform: translateY(-4px);
+        opacity: 1;
+    }
+}
+
 .animate-sheet-up {
     animation: sheet-up 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
@@ -61,4 +72,8 @@
 
 .animate-float-slow {
     animation: float-slow 9s ease-in-out infinite;
+}
+
+.animate-typing-dot {
+    animation: typing-dot 1.1s ease-in-out infinite;
 }

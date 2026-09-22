@@ -6,8 +6,11 @@ use App\Models\CustomBarcode;
 use App\Models\User;
 use App\Services\Calories\FoodPhotoAnalyzer;
 use App\Services\Fit\GoalCalculator;
+use App\Services\Fit\AssistantException;
+use App\Services\Fit\NutritionAssistant;
 use App\Services\Fit\PushSender;
 use App\Services\Fit\ReminderPlanner;
+use App\Services\Fit\WorkoutCoach;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -352,6 +355,182 @@ class FitFeaturesTest extends TestCase
             ->where('averages.calories', 2000)
             ->where('averages30.calories', 2750)
             ->where('days.0.protein', 100));
+    }
+
+    // --- challenge --------------------------------------------------------------------------
+
+    public function test_a_challenge_survives_adding_a_meal(): void
+    {
+        $user = $this->user(['sex' => 'm', 'birth_date' => '1990-01-01', 'height_cm' => 180]);
+        $userId = $user->id;
+
+        $this->actingAs($user)->post('/challenge', [
+            'weightKg' => 90, 'targetWeightKg' => 85, 'days' => 30, 'goal' => 'lose_weight',
+        ])->assertRedirect('/challenge');
+
+        // re-fetch the user for every request below, exactly like separate real HTTP requests would:
+        // reusing the same PHP object across actingAs() calls hides bugs behind stale cached relations.
+        $this->actingAs(User::find($userId))->post('/meals', [
+            'date' => CarbonImmutable::today()->toDateString(),
+            'items' => [$this->item()],
+        ])->assertRedirect();
+
+        $this->actingAs(User::find($userId))->get('/today')->assertInertia(fn ($page) => $page
+            ->where('challenge.goal', 'lose_weight')
+            ->where('challenge.daysElapsed', 1));
+
+        $this->assertSame('active', User::find($userId)->activeChallenge->status);
+    }
+
+    // --- assistant --------------------------------------------------------------------------
+
+    public function test_assistant_page_shows_todays_remaining_macros(): void
+    {
+        $user = $this->user(['calorie_goal' => 2000, 'protein_goal_g' => 150]);
+        $this->meal($user, ['calories' => 800, 'protein_g' => 30]);
+
+        $this->actingAs($user)->get('/assistant')->assertInertia(fn ($page) => $page
+            ->component('Fit/Assistant')
+            ->where('remaining.calories', 1200)
+            ->where('remaining.proteinG', 120)
+            ->where('remaining.carbsG', null));
+    }
+
+    public function test_assistant_answers_with_context_and_respects_the_daily_limit(): void
+    {
+        config(['services.anthropic.daily_assistant_limit' => 1]);
+        $user = $this->user(['protein_goal_g' => 150]);
+        $this->meal($user, ['calories' => 800, 'protein_g' => 30]);
+        $user->favoriteFoods()->create(['name' => 'Iaurt grecesc', 'portion_grams' => 200, 'calories' => 130, 'protein_g' => 20, 'carbs_g' => 8, 'fat_g' => 2, 'fiber_g' => 0]);
+
+        $this->mock(NutritionAssistant::class, function ($mock) {
+            $mock->shouldReceive('ask')->once()->withArgs(function (array $context, array $history, string $message) {
+                return $context['ramas_azi']['proteine_g'] === 120.0
+                    && $context['alimente_favorite'][0]['name'] === 'Iaurt grecesc'
+                    && $history === []
+                    && $message === 'Ce mănânc pentru proteine?';
+            })->andReturn(['reply' => 'Încearcă iaurtul grecesc.', 'suggestions' => [
+                ['name' => 'Iaurt grecesc', 'portion_grams' => 200, 'calories' => 130, 'protein_g' => 20, 'carbs_g' => 8, 'fat_g' => 2, 'fiber_g' => 0],
+            ]]);
+        });
+
+        $this->actingAs($user)->postJson('/assistant/ask', ['message' => 'Ce mănânc pentru proteine?'])
+            ->assertOk()
+            ->assertJsonPath('reply', 'Încearcă iaurtul grecesc.')
+            ->assertJsonPath('suggestions.0.name', 'Iaurt grecesc')
+            ->assertJsonPath('questions_left', 0);
+
+        $this->actingAs($user)->postJson('/assistant/ask', ['message' => 'Și altceva?'])
+            ->assertStatus(429)
+            ->assertJsonPath('questions_left', 0);
+    }
+
+    public function test_assistant_validates_the_message_and_history(): void
+    {
+        $user = $this->user();
+
+        $this->actingAs($user)->postJson('/assistant/ask', ['message' => ''])->assertJsonValidationErrors('message');
+        $this->actingAs($user)->postJson('/assistant/ask', ['message' => str_repeat('a', 301)])->assertJsonValidationErrors('message');
+        $this->actingAs($user)->postJson('/assistant/ask', ['message' => 'bună', 'history' => [['role' => 'nope', 'content' => 'x']]])
+            ->assertJsonValidationErrors('history.0.role');
+    }
+
+    public function test_assistant_failures_return_a_readable_error(): void
+    {
+        $user = $this->user();
+
+        $this->mock(NutritionAssistant::class, function ($mock) {
+            $mock->shouldReceive('ask')->andThrow(new AssistantException('Asistentul nu este disponibil momentan.'));
+        });
+
+        $this->actingAs($user)->postJson('/assistant/ask', ['message' => 'Salut'])
+            ->assertStatus(502)
+            ->assertJsonPath('message', 'Asistentul nu este disponibil momentan.');
+    }
+
+    // --- workout coach ----------------------------------------------------------------------
+
+    public function test_workout_page_shows_recent_history(): void
+    {
+        $user = $this->user();
+        $user->workouts()->create([
+            'date' => CarbonImmutable::today()->toDateString(), 'title' => 'Spate și umeri',
+            'exercises' => [['name' => 'Lat Pulldown', 'sets' => 3, 'reps' => '10-12', 'notes' => '']],
+        ]);
+
+        $this->actingAs($user)->get('/workout')->assertInertia(fn ($page) => $page
+            ->component('Fit/Workout')
+            ->where('history.0.title', 'Spate și umeri')
+            ->where('history.0.exercises.0.name', 'Lat Pulldown'));
+    }
+
+    public function test_workout_coach_answers_with_recent_history_and_respects_the_daily_limit(): void
+    {
+        config(['services.anthropic.daily_workout_limit' => 1]);
+        $user = $this->user();
+        $user->workouts()->create([
+            'date' => CarbonImmutable::yesterday()->toDateString(), 'title' => 'Picioare',
+            'exercises' => [['name' => 'Squat', 'sets' => 4, 'reps' => '8', 'notes' => '']],
+        ]);
+
+        $this->mock(WorkoutCoach::class, function ($mock) {
+            $mock->shouldReceive('ask')->once()->withArgs(function (array $context, array $history, string $message) {
+                return $context['antrenamente_recente'][0]['titlu'] === 'Picioare'
+                    && $history === []
+                    && $message === 'Spate și umeri azi';
+            })->andReturn(['reply' => 'Iată un plan.', 'plan' => [
+                'title' => 'Spate și umeri', 'exercises' => [
+                    ['name' => 'Lat Pulldown', 'sets' => 3, 'reps' => '10-12', 'notes' => 'Trage cu coatele.'],
+                ],
+            ]]);
+        });
+
+        $this->actingAs($user)->postJson('/workout/ask', ['message' => 'Spate și umeri azi'])
+            ->assertOk()
+            ->assertJsonPath('reply', 'Iată un plan.')
+            ->assertJsonPath('plan.exercises.0.name', 'Lat Pulldown')
+            ->assertJsonPath('questions_left', 0);
+
+        $this->actingAs($user)->postJson('/workout/ask', ['message' => 'Și altceva?'])
+            ->assertStatus(429)
+            ->assertJsonPath('questions_left', 0);
+    }
+
+    public function test_workout_coach_validates_the_message_and_history(): void
+    {
+        $user = $this->user();
+
+        $this->actingAs($user)->postJson('/workout/ask', ['message' => ''])->assertJsonValidationErrors('message');
+        $this->actingAs($user)->postJson('/workout/ask', ['message' => str_repeat('a', 301)])->assertJsonValidationErrors('message');
+    }
+
+    public function test_a_workout_plan_can_be_saved_and_deleted(): void
+    {
+        $user = $this->user();
+        $exercises = [['name' => 'Lat Pulldown', 'sets' => 3, 'reps' => '10-12', 'notes' => 'Trage cu coatele.']];
+
+        $this->actingAs($user)->post('/workout', [
+            'date' => CarbonImmutable::today()->toDateString(), 'title' => 'Spate și umeri', 'exercises' => $exercises,
+        ])->assertRedirect();
+
+        $workout = $user->workouts()->sole();
+        $this->assertSame('Spate și umeri', $workout->title);
+        $this->assertSame('Lat Pulldown', $workout->exercises[0]['name']);
+
+        $this->actingAs($this->user())->delete("/workout/{$workout->id}")->assertNotFound();
+
+        $this->actingAs($user)->delete("/workout/{$workout->id}")->assertRedirect();
+        $this->assertDatabaseMissing('workouts', ['id' => $workout->id]);
+    }
+
+    public function test_a_workout_cannot_be_saved_for_a_future_day(): void
+    {
+        $user = $this->user();
+
+        $this->actingAs($user)->post('/workout', [
+            'date' => CarbonImmutable::tomorrow()->toDateString(), 'title' => 'Spate',
+            'exercises' => [['name' => 'Lat Pulldown', 'sets' => 3, 'reps' => '10-12']],
+        ])->assertSessionHasErrors('date');
     }
 
     // --- day strip ------------------------------------------------------------------------

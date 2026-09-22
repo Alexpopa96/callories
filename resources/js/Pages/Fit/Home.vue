@@ -5,7 +5,7 @@ import FitLayout from '@/Layouts/FitLayout.vue';
 import ProgressRing from '@/Components/Fit/ProgressRing.vue';
 import BottomSheet from '@/Components/Fit/BottomSheet.vue';
 import ChallengeCard from '@/Components/Fit/ChallengeCard.vue';
-import {BeakerIcon, CameraIcon, ChevronLeftIcon, ChevronRightIcon, FireIcon, PencilSquareIcon, PlusIcon, ScaleIcon, TrashIcon} from '@heroicons/vue/24/outline/index.js';
+import {BeakerIcon, BoltIcon, CameraIcon, ChevronLeftIcon, ChevronRightIcon, FireIcon, PencilSquareIcon, PlusIcon, ScaleIcon, SparklesIcon, TrashIcon} from '@heroicons/vue/24/outline/index.js';
 
 const props = defineProps({
     date: String,
@@ -17,6 +17,7 @@ const props = defineProps({
     totals: Object,
     steps: Number,
     waterMl: Number,
+    exerciseCalories: {type: Number, default: 0},
     weightKg: {type: Number, default: null},
     challenge: {type: Object, default: null},
     meals: Array,
@@ -25,7 +26,9 @@ const props = defineProps({
 const fmt = (value) => Math.round(value).toLocaleString('ro-RO');
 const liters = (ml) => (ml / 1000).toLocaleString('ro-RO', {maximumFractionDigits: 2});
 
-const remaining = computed(() => props.goals.calories - props.totals.calories);
+// caloriile arse la sport se adaugă la bugetul zilei, nu doar la ziua curentă
+const calorieBudget = computed(() => props.goals.calories + props.exerciseCalories);
+const remaining = computed(() => calorieBudget.value - props.totals.calories);
 
 const macros = computed(() => {
     const total = props.totals.protein + props.totals.carbs + props.totals.fat;
@@ -82,6 +85,27 @@ function saveSteps() {
     });
 }
 
+const exerciseSheet = ref(false);
+const exerciseInput = ref('');
+
+function openExercise() {
+    exerciseInput.value = props.exerciseCalories ? String(props.exerciseCalories) : '';
+    exerciseSheet.value = true;
+}
+
+function bumpExercise(amount) {
+    exerciseInput.value = String(Math.max(0, (parseInt(exerciseInput.value, 10) || 0) + amount));
+}
+
+function saveExercise() {
+    const calories = parseInt(exerciseInput.value, 10) || 0;
+    if (calories < 0) return;
+    router.put('/log/exercise', {date: props.date, calories}, {
+        preserveScroll: true,
+        onSuccess: () => (exerciseSheet.value = false),
+    });
+}
+
 function removeMeal(meal) {
     if (!confirm(`Ștergi „${meal.title}”?`)) return;
     router.delete(`/meals/${meal.id}`, {preserveScroll: true});
@@ -122,9 +146,9 @@ function removeMeal(meal) {
 
         <section class="mt-5 rounded-[2rem] border border-white/10 bg-gradient-to-b from-panel2 to-panel p-5">
             <div class="flex items-center gap-5">
-                <ProgressRing :value="totals.calories" :max="goals.calories" :size="148" :stroke="14" warn-over>
+                <ProgressRing :value="totals.calories" :max="calorieBudget" :size="148" :stroke="14" warn-over>
                     <span class="text-3xl font-extrabold leading-none tracking-tight">{{ fmt(totals.calories) }}</span>
-                    <span class="mt-1 text-xs font-medium text-white/50">din {{ fmt(goals.calories) }} kcal</span>
+                    <span class="mt-1 text-xs font-medium text-white/50">din {{ fmt(calorieBudget) }} kcal</span>
                 </ProgressRing>
 
                 <div class="min-w-0 flex-1">
@@ -138,6 +162,7 @@ function removeMeal(meal) {
                         +{{ fmt(-remaining) }} <span class="text-base font-semibold">kcal peste</span>
                     </p>
                     <p class="mt-1 text-xs text-white/45">{{ meals.length }} {{ meals.length === 1 ? 'masă' : 'mese' }} înregistrate</p>
+                    <p v-if="exerciseCalories > 0" class="mt-0.5 text-xs text-white/45">+{{ fmt(exerciseCalories) }} kcal arse la sport</p>
                 </div>
             </div>
 
@@ -190,6 +215,19 @@ function removeMeal(meal) {
             </div>
         </div>
 
+        <button type="button"
+                class="mt-4 flex w-full items-center gap-3 rounded-[1.5rem] border border-white/10 bg-panel p-4 text-left active:scale-[0.99]"
+                @click="openExercise">
+            <span class="flex size-10 items-center justify-center rounded-full bg-sun/15 text-sun"><BoltIcon class="size-5"/></span>
+            <span class="min-w-0 flex-1">
+                <span class="block text-xs font-semibold uppercase tracking-wider text-white/50">Sport</span>
+                <span class="block text-lg font-extrabold leading-tight">
+                    {{ exerciseCalories > 0 ? `${fmt(exerciseCalories)} kcal arse` : 'Adaugă caloriile arse' }}
+                </span>
+            </span>
+            <ChevronRightIcon class="size-5 text-white/35"/>
+        </button>
+
         <Link href="/weight" class="mt-4 flex items-center gap-3 rounded-[1.5rem] border border-white/10 bg-panel p-4 active:scale-[0.99]">
             <span class="flex size-10 items-center justify-center rounded-full bg-rose/15 text-rose"><ScaleIcon class="size-5"/></span>
             <span class="min-w-0 flex-1">
@@ -198,6 +236,18 @@ function removeMeal(meal) {
                     {{ weightKg ? `${weightKg.toLocaleString('ro-RO')} kg` : 'Adaugă prima măsurătoare' }}
                 </span>
             </span>
+            <ChevronRightIcon class="size-5 text-white/35"/>
+        </Link>
+
+        <Link href="/assistant" class="mt-3 flex items-center gap-3 rounded-[1.5rem] border border-lime/20 bg-lime/[0.06] p-4 active:scale-[0.99]">
+            <span class="flex size-10 items-center justify-center rounded-full bg-lime/15 text-lime"><SparklesIcon class="size-5"/></span>
+            <span class="flex-1 font-bold">Ce să mai mănânc azi?</span>
+            <ChevronRightIcon class="size-5 text-white/35"/>
+        </Link>
+
+        <Link href="/workout" class="mt-3 flex items-center gap-3 rounded-[1.5rem] border border-sun/20 bg-sun/[0.06] p-4 active:scale-[0.99]">
+            <span class="flex size-10 items-center justify-center rounded-full bg-sun/15 text-sun"><BoltIcon class="size-5"/></span>
+            <span class="flex-1 font-bold">Ce fac azi la sală?</span>
             <ChevronRightIcon class="size-5 text-white/35"/>
         </Link>
 
@@ -286,6 +336,24 @@ function removeMeal(meal) {
             </div>
             <button type="button" class="mt-4 h-14 w-full rounded-2xl bg-sun text-base font-extrabold text-ink active:scale-[0.98]"
                     @click="saveSteps">
+                Salvează
+            </button>
+        </BottomSheet>
+
+        <BottomSheet :open="exerciseSheet" title="Calorii arse la sport" @close="exerciseSheet = false">
+            <p class="mb-3 text-xs text-white/45">De pe ceasul tău, pentru {{ isToday ? 'azi' : dateLabel.toLowerCase() }}.</p>
+            <input v-model="exerciseInput" type="number" inputmode="numeric" min="0" placeholder="Kcal arse"
+                   class="h-14 w-full rounded-2xl border border-white/10 bg-white/5 px-4 text-2xl font-extrabold text-white placeholder:text-base placeholder:font-normal placeholder:text-white/30 focus:border-sun focus:ring-0"
+                   @keyup.enter="saveExercise"/>
+            <div class="mt-3 grid grid-cols-3 gap-2">
+                <button v-for="amount in [100, 200, 300]" :key="amount" type="button"
+                        class="h-12 rounded-2xl bg-sun/15 text-sm font-extrabold text-sun active:scale-95"
+                        @click="bumpExercise(amount)">
+                    +{{ fmt(amount) }}
+                </button>
+            </div>
+            <button type="button" class="mt-4 h-14 w-full rounded-2xl bg-sun text-base font-extrabold text-ink active:scale-[0.98]"
+                    @click="saveExercise">
                 Salvează
             </button>
         </BottomSheet>

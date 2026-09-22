@@ -32,6 +32,9 @@ return [
         'key' => env('ANTHROPIC_API_KEY'),
         'model' => env('ANTHROPIC_MODEL', 'claude-sonnet-5'),
         'daily_scan_limit' => (int) env('SCAN_DAILY_LIMIT', 20),
+        'daily_assistant_limit' => (int) env('ASSISTANT_DAILY_LIMIT', 30),
+        'daily_text_limit' => (int) env('TEXT_DAILY_LIMIT', 30),
+        'daily_workout_limit' => (int) env('WORKOUT_DAILY_LIMIT', 30),
     ],
 
     'webpush' => [

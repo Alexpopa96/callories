@@ -23,7 +23,7 @@ class GoalCalculator
      */
     public function suggest(User $user, ?float $weightKg, ?CarbonImmutable $today = null): ?array
     {
-        if (! $weightKg || ! $user->birth_date || ! $user->height_cm || ! in_array($user->sex, ['m', 'f'], true)) {
+        if (! $this->hasCompleteProfile($user, $weightKg)) {
             return null;
         }
 
@@ -31,6 +31,26 @@ class GoalCalculator
         $bmr = 10 * $weightKg + 6.25 * $user->height_cm - 5 * $age + ($user->sex === 'm' ? 5 : -161);
         $tdee = $bmr * (self::ACTIVITY[$user->activity_level] ?? self::ACTIVITY['light']);
 
+        return [
+            ...$this->deriveTargets($user, $tdee, $weightKg),
+            'bmr' => (int) round($bmr),
+            'tdee' => (int) round($tdee),
+        ];
+    }
+
+    public function hasCompleteProfile(User $user, ?float $weightKg): bool
+    {
+        return (bool) ($weightKg && $user->birth_date && $user->height_cm && in_array($user->sex, ['m', 'f'], true));
+    }
+
+    /**
+     * Turn a daily energy expenditure estimate into calorie/macro/water targets, applying
+     * the same goal-type adjustment, rounding and floors used by the Mifflin-St Jeor suggestion.
+     *
+     * @return array{calories: int, proteinG: int, carbsG: int, fatG: int, waterMl: int}
+     */
+    public function deriveTargets(User $user, float $tdee, float $weightKg): array
+    {
         $calories = match ($user->goal_type) {
             'lose' => $tdee - 500,
             'gain' => $tdee + 300,
@@ -52,8 +72,6 @@ class GoalCalculator
             'carbsG' => $carbsG,
             'fatG' => $fatG,
             'waterMl' => (int) min(4000, max(1500, round($weightKg * 35 / 100) * 100)),
-            'bmr' => (int) round($bmr),
-            'tdee' => (int) round($tdee),
         ];
     }
 }

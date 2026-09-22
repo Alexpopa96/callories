@@ -185,6 +185,30 @@ class CaloriesTest extends TestCase
         $this->assertSame(5100, $user->dailyLogs()->sole()->steps);
     }
 
+    public function test_exercise_calories_are_set_per_day_and_can_be_logged_for_a_past_day(): void
+    {
+        $user = $this->user();
+        $today = CarbonImmutable::today()->toDateString();
+        $yesterday = CarbonImmutable::yesterday()->toDateString();
+
+        $this->actingAs($user)->put('/log/exercise', ['date' => $today, 'calories' => 300]);
+        $this->actingAs($user)->put('/log/exercise', ['date' => $today, 'calories' => 450]);
+        $this->assertSame(450, $user->dailyLogs()->where('date', $today)->sole()->exercise_calories);
+
+        $this->actingAs($user)->put('/log/exercise', ['date' => $yesterday, 'calories' => 200]);
+        $this->assertSame(200, $user->dailyLogs()->where('date', $yesterday)->sole()->exercise_calories);
+    }
+
+    public function test_exercise_calories_widen_the_calorie_budget_shown_for_the_day(): void
+    {
+        $user = $this->user(['calorie_goal' => 2000]);
+        $today = CarbonImmutable::today()->toDateString();
+        $user->dailyLogs()->create(['date' => $today, 'exercise_calories' => 400]);
+
+        $this->actingAs($user)->get('/today')
+            ->assertInertia(fn ($page) => $page->where('exerciseCalories', 400)->where('goals.calories', 2000));
+    }
+
     public function test_a_user_cannot_delete_someone_elses_meal(): void
     {
         $owner = $this->user();

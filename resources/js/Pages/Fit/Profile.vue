@@ -9,15 +9,18 @@ import {isNativeApp, syncNativeReminders} from '@/Composables/useNativeReminders
 import {
     ArrowDownTrayIcon,
     ArrowRightStartOnRectangleIcon,
+    BellIcon,
+    CalculatorIcon,
     ChevronRightIcon,
+    FolderIcon,
     ScaleIcon,
 } from '@heroicons/vue/24/outline/index.js';
 
 const props = defineProps({
     goals: Object,
-    canAdmin: Boolean,
     body: Object,
     suggestion: {type: Object, default: null},
+    adaptiveSuggestion: {type: Object, default: null},
     reminders: Object,
     pushKey: {type: String, default: null},
 });
@@ -73,6 +76,8 @@ const saveBody = () => bodyForm.transform((data) => ({
 })).put('/me/body', {preserveScroll: true});
 
 const applySuggestion = () => router.post('/me/goals/apply', {}, {preserveScroll: true});
+const applyAdaptive = () => router.post('/me/goals/adaptive/apply', {}, {preserveScroll: true});
+const dismissAdaptive = () => router.post('/me/goals/adaptive/dismiss', {}, {preserveScroll: true});
 
 const activityOptions = [
     {value: 'sedentary', label: 'Sedentar (birou, puțină mișcare)'},
@@ -149,7 +154,21 @@ const logout = () => router.post('/logout');
             <ChevronRightIcon class="size-5 text-white/35"/>
         </Link>
 
-        <Section title="Calculează-ți obiectivele" :open="!suggestion">
+        <section v-if="adaptiveSuggestion" class="mt-4 rounded-[1.5rem] border border-aqua/25 bg-aqua/[0.06] p-4">
+            <p class="text-xs font-semibold uppercase tracking-wider text-aqua">Ajustare recomandată</p>
+            <p class="mt-2 text-sm text-white/80">{{ adaptiveSuggestion.message }}</p>
+            <div class="mt-3 flex gap-2">
+                <button type="button" class="h-12 flex-1 rounded-2xl bg-aqua font-extrabold text-ink active:scale-[0.98]" @click="applyAdaptive">
+                    Da, ajustează
+                </button>
+                <button type="button" class="h-12 flex-1 rounded-2xl bg-white/10 font-bold text-white active:scale-[0.98]" @click="dismissAdaptive">
+                    Nu, mulțumesc
+                </button>
+            </div>
+        </section>
+
+        <Section title="Calculează-ți obiectivele" :open="!suggestion" color="lime">
+            <template #icon><CalculatorIcon class="size-5"/></template>
         <form class="space-y-3" @submit.prevent="saveBody">
             <div class="grid grid-cols-2 gap-3">
                 <label class="block">
@@ -245,7 +264,8 @@ const logout = () => router.post('/logout');
             </button>
         </form>
 
-        <Section title="Notificări">
+        <Section title="Notificări" color="aqua">
+            <template #icon><BellIcon class="size-5"/></template>
         <div class="space-y-4">
             <label v-for="item in [{key: 'meals', label: 'Reminder pentru mese', hint: 'La 13:00 dacă nu ai mâncat și la 20:00 dacă ești sub jumătate din obiectiv'}, {key: 'water', label: 'Reminder pentru apă', hint: 'La 11:00, 15:00 și 19:00 când ești în urma obiectivului'}, {key: 'calorieLimit', label: 'Reminder limită calorii', hint: 'Te anunț când o masă te duce aproape de obiectivul zilnic sau îl depășește'}, {key: 'challenge', label: 'Reminder provocare', hint: 'Te anunț dacă nu te-ai cântărit, dacă ești în afara ritmului sau la un prag important'}]"
                    :key="item.key" class="flex items-start justify-between gap-4">
@@ -264,7 +284,8 @@ const logout = () => router.post('/logout');
         </div>
         </Section>
 
-        <Section title="Datele tale">
+        <Section title="Datele tale" color="rose">
+            <template #icon><FolderIcon class="size-5"/></template>
         <a href="/me/export" class="flex items-center gap-3 rounded-2xl bg-white/5 p-3 active:scale-[0.99]">
             <span class="flex size-10 items-center justify-center rounded-full bg-aqua/15 text-aqua"><ArrowDownTrayIcon class="size-5"/></span>
             <span class="flex-1">
@@ -276,11 +297,6 @@ const logout = () => router.post('/logout');
             Șterge contul
         </button>
         </Section>
-
-        <a v-if="canAdmin" href="/dashboard"
-           class="mt-6 flex h-12 items-center justify-center rounded-2xl bg-white/5 text-sm font-semibold text-white/70">
-            Panou de administrare
-        </a>
 
         <button type="button"
                 class="mt-3 flex h-14 w-full items-center justify-center gap-2 rounded-2xl border border-rose/30 text-base font-bold text-rose active:scale-[0.98]"
