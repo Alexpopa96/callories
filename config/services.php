@@ -29,7 +29,14 @@ return [
     ],
 
     'anthropic' => [
+        // default for users who have not picked a model in their profile
         'model' => env('ANTHROPIC_MODEL', 'claude-sonnet-5'),
+        'models' => [
+            'claude-haiku-4-5' => 'Claude Haiku 4.5 (cel mai rapid și ieftin)',
+            'claude-sonnet-5' => 'Claude Sonnet 5 (echilibrat)',
+            'claude-opus-5' => 'Claude Opus 5 (mai precis, mai scump)',
+            'claude-fable-5-1' => 'Claude Fable 5.1 (cel mai capabil, cel mai scump)',
+        ],
         'daily_scan_limit' => (int) env('SCAN_DAILY_LIMIT', 20),
         'daily_assistant_limit' => (int) env('ASSISTANT_DAILY_LIMIT', 30),
         'daily_text_limit' => (int) env('TEXT_DAILY_LIMIT', 30),

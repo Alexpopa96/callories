@@ -33,6 +33,7 @@ use App\Http\Controllers\Fit\StoreWeight;
 use App\Http\Controllers\Fit\StoreWorkout;
 use App\Http\Controllers\Fit\SubscribePush;
 use App\Http\Controllers\Fit\UnsubscribePush;
+use App\Http\Controllers\Fit\UpdateAiModel;
 use App\Http\Controllers\Fit\UpdateApiKey;
 use App\Http\Controllers\Fit\UpdateBody;
 use App\Http\Controllers\Fit\UpdateChallenge;
@@ -96,6 +97,7 @@ Route::middleware(['auth'])->group(function () {
     Route::put('me/reminders', UpdateReminders::class)->name('fit.reminders');
     Route::put('me/api-key', UpdateApiKey::class)->name('fit.apiKey');
     Route::delete('me/api-key', DestroyApiKey::class)->name('fit.apiKey.destroy');
+    Route::put('me/ai-model', UpdateAiModel::class)->name('fit.aiModel');
     Route::get('me/export', ExportData::class)->name('fit.export');
     Route::delete('me', DestroyAccount::class)->name('fit.account.destroy');
 

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Services\Anthropic\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -110,6 +111,12 @@ class User extends Authenticatable
     public function anthropicKeyHint(): ?string
     {
         return $this->hasAnthropicKey() ? '…'.substr($this->anthropic_api_key, -4) : null;
+    }
+
+    /** The user's chosen model, or the app default when none (or a no longer offered one) is set. */
+    public function anthropicModel(): string
+    {
+        return Models::allowed($this->anthropic_model) ? $this->anthropic_model : config('services.anthropic.model');
     }
 
     public function goals(): array

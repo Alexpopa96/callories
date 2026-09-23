@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use Anthropic\Client;
 use App\Models\User;
+use App\Services\Anthropic\Models;
 use App\Services\Calories\FoodPhotoAnalyzer;
 use App\Services\Fit\NutritionAssistant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -77,5 +78,29 @@ class ApiKeyTest extends TestCase
         $this->actingAs($this->user());
         $this->expectException(HttpException::class);
         app(Client::class);
+    }
+
+    public function test_a_model_can_be_picked_from_the_offered_list(): void
+    {
+        config(['services.anthropic.model' => 'claude-sonnet-5']);
+        $user = $this->user();
+
+        $this->actingAs($user)->get('/me')->assertInertia(fn ($page) => $page
+            ->where('aiModel', 'claude-sonnet-5')
+            ->has('aiModels.claude-haiku-4-5'));
+
+        $this->actingAs($user)->put('/me/ai-model', ['model' => 'gpt-4'])->assertSessionHasErrors('model');
+        $this->assertSame('claude-sonnet-5', $user->fresh()->anthropicModel());
+
+        $this->actingAs($user)->put('/me/ai-model', ['model' => 'claude-opus-5'])->assertRedirect();
+        $this->assertSame('claude-opus-5', $user->fresh()->anthropicModel());
+    }
+
+    public function test_haiku_is_called_without_effort(): void
+    {
+        $schema = ['type' => 'object'];
+
+        $this->assertArrayNotHasKey('effort', Models::outputConfig('claude-haiku-4-5', 'low', $schema));
+        $this->assertSame('low', Models::outputConfig('claude-sonnet-5', 'low', $schema)['effort']);
     }
 }

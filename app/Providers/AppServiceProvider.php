@@ -28,22 +28,22 @@ class AppServiceProvider extends ServiceProvider
 
         $this->app->bind(FoodPhotoAnalyzer::class, fn ($app) => new FoodPhotoAnalyzer(
             $app->make(Client::class),
-            config('services.anthropic.model'),
+            auth()->user()?->anthropicModel() ?? config('services.anthropic.model'),
         ));
 
         $this->app->bind(FoodTextAnalyzer::class, fn ($app) => new FoodTextAnalyzer(
             $app->make(Client::class),
-            config('services.anthropic.model'),
+            auth()->user()?->anthropicModel() ?? config('services.anthropic.model'),
         ));
 
         $this->app->bind(NutritionAssistant::class, fn ($app) => new NutritionAssistant(
             $app->make(Client::class),
-            config('services.anthropic.model'),
+            auth()->user()?->anthropicModel() ?? config('services.anthropic.model'),
         ));
 
         $this->app->bind(WorkoutCoach::class, fn ($app) => new WorkoutCoach(
             $app->make(Client::class),
-            config('services.anthropic.model'),
+            auth()->user()?->anthropicModel() ?? config('services.anthropic.model'),
         ));
     }
 

@@ -25,6 +25,8 @@ const props = defineProps({
     adaptiveSuggestion: {type: Object, default: null},
     reminders: Object,
     apiKeyHint: {type: String, default: null},
+    aiModel: String,
+    aiModels: Object,
     pushKey: {type: String, default: null},
 });
 
@@ -101,6 +103,7 @@ const inputClass = 'mt-1 h-12 w-full rounded-xl border border-white/10 bg-white/
 const apiKeyForm = useForm({apiKey: ''});
 
 const saveApiKey = () => apiKeyForm.put('/me/api-key', {preserveScroll: true, onSuccess: () => apiKeyForm.reset()});
+const setAiModel = (model) => router.put('/me/ai-model', {model}, {preserveScroll: true});
 const removeApiKey = () => router.delete('/me/api-key', {preserveScroll: true});
 
 // password
@@ -283,7 +286,7 @@ const logout = () => router.post('/logout');
             </button>
         </form>
 
-        <Section title="Cheie API Anthropic" :open="!apiKeyHint" color="sun">
+        <Section title="Setări AI (cheie și model)" :open="!apiKeyHint" color="sun">
             <template #icon><KeyIcon class="size-5"/></template>
         <p class="text-sm text-white/60">
             Scanarea pozelor, descrierea meselor în text, asistentul și antrenorul folosesc cheia ta API Anthropic.
@@ -308,6 +311,13 @@ const logout = () => router.post('/logout');
                 Salvează cheia
             </button>
         </form>
+        <label class="mt-4 block">
+            <span class="text-xs font-semibold uppercase tracking-wider text-white/50">Model AI</span>
+            <select :value="aiModel" :class="inputClass" @change="setAiModel($event.target.value)">
+                <option v-for="(label, id) in aiModels" :key="id" :value="id">{{ label }}</option>
+            </select>
+            <span v-if="page.props.errors.model" class="mt-1 block text-sm text-rose">{{ page.props.errors.model }}</span>
+        </label>
         </Section>
 
         <Section title="Notificări" color="aqua">

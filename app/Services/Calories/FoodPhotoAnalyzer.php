@@ -4,6 +4,7 @@ namespace App\Services\Calories;
 
 use Anthropic\Client;
 use Anthropic\Core\Exceptions\APIException;
+use App\Services\Anthropic\Models;
 
 class FoodPhotoAnalyzer
 {
@@ -58,10 +59,7 @@ TXT;
                         ['type' => 'text', 'text' => 'Estimează valorile nutriționale pentru mâncarea din poză.'],
                     ],
                 ]],
-                outputConfig: [
-                    'effort' => 'medium',
-                    'format' => ['type' => 'json_schema', 'schema' => $this->schema()],
-                ],
+                outputConfig: Models::outputConfig($this->model, 'medium', $this->schema()),
             );
         } catch (APIException $e) {
             report($e);

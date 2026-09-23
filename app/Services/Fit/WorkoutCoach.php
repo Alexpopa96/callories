@@ -4,6 +4,7 @@ namespace App\Services\Fit;
 
 use Anthropic\Client;
 use Anthropic\Core\Exceptions\APIException;
+use App\Services\Anthropic\Models;
 
 class WorkoutCoach
 {
@@ -47,10 +48,7 @@ TXT;
                 maxTokens: 1200,
                 system: $system,
                 messages: $messages,
-                outputConfig: [
-                    'effort' => 'low',
-                    'format' => ['type' => 'json_schema', 'schema' => $this->schema()],
-                ],
+                outputConfig: Models::outputConfig($this->model, 'low', $this->schema()),
             );
         } catch (APIException $e) {
             report($e);

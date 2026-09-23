@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Fit;
 
 use App\Http\Controllers\Controller;
+use App\Services\Anthropic\Models;
 use App\Services\Fit\GoalCalculator;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -35,6 +36,8 @@ class Profile extends Controller
                 'challenge' => $user->remind_challenge,
             ],
             'apiKeyHint' => $user->anthropicKeyHint(),
+            'aiModel' => $user->anthropicModel(),
+            'aiModels' => Models::options(),
             'pushKey' => config('services.webpush.public_key'),
         ]);
     }
