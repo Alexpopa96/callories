@@ -14,6 +14,7 @@ import {
     ChevronRightIcon,
     FolderIcon,
     KeyIcon,
+    LockClosedIcon,
     ScaleIcon,
 } from '@heroicons/vue/24/outline/index.js';
 
@@ -101,6 +102,16 @@ const apiKeyForm = useForm({apiKey: ''});
 
 const saveApiKey = () => apiKeyForm.put('/me/api-key', {preserveScroll: true, onSuccess: () => apiKeyForm.reset()});
 const removeApiKey = () => router.delete('/me/api-key', {preserveScroll: true});
+
+// password
+const passwordForm = useForm({current_password: '', password: '', password_confirmation: ''});
+
+const savePassword = () => passwordForm.put('/user/password', {
+    errorBag: 'updatePassword',
+    preserveScroll: true,
+    onSuccess: () => passwordForm.reset(),
+    onError: () => passwordForm.reset('password', 'password_confirmation'),
+});
 
 // reminders
 const pushError = ref(null);
@@ -317,6 +328,31 @@ const logout = () => router.post('/logout');
             </p>
             <p v-if="pushError" class="text-sm text-rose">{{ pushError }}</p>
         </div>
+        </Section>
+
+        <Section title="Schimbă parola" color="lime">
+            <template #icon><LockClosedIcon class="size-5"/></template>
+        <form class="space-y-3" @submit.prevent="savePassword">
+            <label class="block">
+                <span class="text-xs font-semibold uppercase tracking-wider text-white/50">Parola actuală</span>
+                <input v-model="passwordForm.current_password" type="password" autocomplete="current-password" :class="inputClass"/>
+                <span v-if="passwordForm.errors.current_password" class="mt-1 block text-sm text-rose">{{ passwordForm.errors.current_password }}</span>
+            </label>
+            <label class="block">
+                <span class="text-xs font-semibold uppercase tracking-wider text-white/50">Parola nouă</span>
+                <input v-model="passwordForm.password" type="password" autocomplete="new-password" :class="inputClass"/>
+                <span v-if="passwordForm.errors.password" class="mt-1 block text-sm text-rose">{{ passwordForm.errors.password }}</span>
+            </label>
+            <label class="block">
+                <span class="text-xs font-semibold uppercase tracking-wider text-white/50">Confirmă parola nouă</span>
+                <input v-model="passwordForm.password_confirmation" type="password" autocomplete="new-password" :class="inputClass"/>
+            </label>
+            <p v-if="passwordForm.recentlySuccessful" class="text-sm text-lime">Parola a fost schimbată.</p>
+            <button type="submit" :disabled="passwordForm.processing || !passwordForm.current_password || !passwordForm.password"
+                    class="h-12 w-full rounded-2xl bg-white/10 font-bold text-white active:scale-[0.98] disabled:opacity-40">
+                {{ passwordForm.processing ? 'Se salvează…' : 'Schimbă parola' }}
+            </button>
+        </form>
         </Section>
 
         <Section title="Datele tale" color="rose">
