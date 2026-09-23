@@ -13,6 +13,7 @@ import {
     CalculatorIcon,
     ChevronRightIcon,
     FolderIcon,
+    KeyIcon,
     ScaleIcon,
 } from '@heroicons/vue/24/outline/index.js';
 
@@ -22,6 +23,7 @@ const props = defineProps({
     suggestion: {type: Object, default: null},
     adaptiveSuggestion: {type: Object, default: null},
     reminders: Object,
+    apiKeyHint: {type: String, default: null},
     pushKey: {type: String, default: null},
 });
 
@@ -93,6 +95,12 @@ const goalOptions = [
 ];
 
 const inputClass = 'mt-1 h-12 w-full rounded-xl border border-white/10 bg-white/5 px-4 text-base font-bold text-white focus:border-lime focus:ring-0';
+
+// api key
+const apiKeyForm = useForm({apiKey: ''});
+
+const saveApiKey = () => apiKeyForm.put('/me/api-key', {preserveScroll: true, onSuccess: () => apiKeyForm.reset()});
+const removeApiKey = () => router.delete('/me/api-key', {preserveScroll: true});
 
 // reminders
 const pushError = ref(null);
@@ -263,6 +271,33 @@ const logout = () => router.post('/logout');
                 {{ form.processing ? 'Se salvează…' : 'Salvează obiectivele' }}
             </button>
         </form>
+
+        <Section title="Cheie API Anthropic" :open="!apiKeyHint" color="sun">
+            <template #icon><KeyIcon class="size-5"/></template>
+        <p class="text-sm text-white/60">
+            Scanarea pozelor, descrierea meselor în text, asistentul și antrenorul folosesc cheia ta API Anthropic.
+            O creezi din <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener" class="font-bold text-sun underline">consola Anthropic</a>.
+        </p>
+        <div v-if="apiKeyHint" class="mt-3 flex items-center justify-between gap-3 rounded-2xl bg-white/5 p-3">
+            <span>
+                <span class="block font-bold">Cheie setată</span>
+                <span class="block font-mono text-xs text-white/45">sk-ant-{{ apiKeyHint }}</span>
+            </span>
+            <button type="button" class="h-10 rounded-xl px-3 text-sm font-semibold text-rose/80 active:bg-rose/10" @click="removeApiKey">
+                Șterge
+            </button>
+        </div>
+        <form class="mt-3 space-y-3" @submit.prevent="saveApiKey">
+            <input v-model="apiKeyForm.apiKey" type="password" autocomplete="off" spellcheck="false"
+                   :placeholder="apiKeyHint ? 'Înlocuiește cheia' : 'sk-ant-…'"
+                   :class="inputClass"/>
+            <p v-if="apiKeyForm.errors.apiKey" class="text-sm text-rose">{{ apiKeyForm.errors.apiKey }}</p>
+            <button type="submit" :disabled="apiKeyForm.processing || !apiKeyForm.apiKey"
+                    class="h-12 w-full rounded-2xl bg-sun font-extrabold text-ink active:scale-[0.98] disabled:opacity-40">
+                Salvează cheia
+            </button>
+        </form>
+        </Section>
 
         <Section title="Notificări" color="aqua">
             <template #icon><BellIcon class="size-5"/></template>

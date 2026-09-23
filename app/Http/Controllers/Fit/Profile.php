@@ -34,6 +34,7 @@ class Profile extends Controller
                 'calorieLimit' => $user->remind_calorie_limit,
                 'challenge' => $user->remind_challenge,
             ],
+            'apiKeyHint' => $user->anthropicKeyHint(),
             'pushKey' => config('services.webpush.public_key'),
         ]);
     }

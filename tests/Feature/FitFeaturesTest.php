@@ -33,7 +33,7 @@ class FitFeaturesTest extends TestCase
 
     private function user(array $attributes = []): User
     {
-        $user = User::factory()->create(['status' => true, ...$attributes]);
+        $user = User::factory()->create(['status' => true, 'anthropic_api_key' => 'sk-ant-test-key-1234', ...$attributes]);
         $user->assignRole(Role::findOrCreate('user', 'web'));
 
         // reload so columns filled by DB defaults (goals, status) are present on the model

@@ -63,6 +63,7 @@ class User extends Authenticatable
         'remember_token',
         'two_factor_recovery_codes',
         'two_factor_secret',
+        'anthropic_api_key',
     ];
 
     /**
@@ -89,6 +90,7 @@ class User extends Authenticatable
             'remind_water' => 'boolean',
             'remind_calorie_limit' => 'boolean',
             'remind_challenge' => 'boolean',
+            'anthropic_api_key' => 'encrypted',
         ];
     }
 
@@ -97,6 +99,17 @@ class User extends Authenticatable
         return $this->roles
             ->map->permissions
             ->flatten()->pluck('name')->unique();
+    }
+
+    public function hasAnthropicKey(): bool
+    {
+        return filled($this->anthropic_api_key);
+    }
+
+    /** The key's last characters, enough to recognise it without exposing it. */
+    public function anthropicKeyHint(): ?string
+    {
+        return $this->hasAnthropicKey() ? '…'.substr($this->anthropic_api_key, -4) : null;
     }
 
     public function goals(): array

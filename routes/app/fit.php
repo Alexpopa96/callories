@@ -10,6 +10,7 @@ use App\Http\Controllers\Fit\AskAssistant;
 use App\Http\Controllers\Fit\AskWorkoutCoach;
 use App\Http\Controllers\Fit\Assistant;
 use App\Http\Controllers\Fit\DestroyAccount;
+use App\Http\Controllers\Fit\DestroyApiKey;
 use App\Http\Controllers\Fit\DestroyFavorite;
 use App\Http\Controllers\Fit\DestroyMeal;
 use App\Http\Controllers\Fit\DestroyWeight;
@@ -32,6 +33,7 @@ use App\Http\Controllers\Fit\StoreWeight;
 use App\Http\Controllers\Fit\StoreWorkout;
 use App\Http\Controllers\Fit\SubscribePush;
 use App\Http\Controllers\Fit\UnsubscribePush;
+use App\Http\Controllers\Fit\UpdateApiKey;
 use App\Http\Controllers\Fit\UpdateBody;
 use App\Http\Controllers\Fit\UpdateChallenge;
 use App\Http\Controllers\Fit\UpdateExercise;
@@ -41,6 +43,7 @@ use App\Http\Controllers\Fit\UpdateReminders;
 use App\Http\Controllers\Fit\UpdateSteps;
 use App\Http\Controllers\Fit\UpdateWater;
 use App\Http\Controllers\Fit\Weight;
+use App\Http\Middleware\EnsureAnthropicKey;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth'])->group(function () {
@@ -49,18 +52,18 @@ Route::middleware(['auth'])->group(function () {
     Route::get('today', Home::class)->name('fit.today');
     Route::get('history', History::class)->name('fit.history');
     Route::get('scan', Scan::class)->name('fit.scan');
-    Route::post('scan/analyze', Analyze::class)->name('fit.analyze');
+    Route::post('scan/analyze', Analyze::class)->middleware(EnsureAnthropicKey::class)->name('fit.analyze');
 
     Route::get('assistant', Assistant::class)->name('fit.assistant');
-    Route::post('assistant/ask', AskAssistant::class)->name('fit.assistant.ask');
+    Route::post('assistant/ask', AskAssistant::class)->middleware(EnsureAnthropicKey::class)->name('fit.assistant.ask');
 
     Route::get('workout', ShowWorkout::class)->name('fit.workout');
-    Route::post('workout/ask', AskWorkoutCoach::class)->name('fit.workout.ask');
+    Route::post('workout/ask', AskWorkoutCoach::class)->middleware(EnsureAnthropicKey::class)->name('fit.workout.ask');
     Route::post('workout', StoreWorkout::class)->name('fit.workout.store');
     Route::delete('workout/{workout}', DestroyWorkout::class)->name('fit.workout.destroy');
 
     Route::get('meals/create', AddMeal::class)->name('fit.meals.create');
-    Route::post('meals/analyze-text', AnalyzeText::class)->name('fit.meals.analyzeText');
+    Route::post('meals/analyze-text', AnalyzeText::class)->middleware(EnsureAnthropicKey::class)->name('fit.meals.analyzeText');
     Route::post('meals', StoreMeal::class)->name('fit.meals.store');
     Route::get('meals/{meal}/edit', EditMeal::class)->name('fit.meals.edit');
     Route::put('meals/{meal}', UpdateMeal::class)->name('fit.meals.update');
@@ -91,6 +94,8 @@ Route::middleware(['auth'])->group(function () {
     Route::post('me/goals/adaptive/dismiss', DismissAdaptiveGoal::class)->name('fit.goals.adaptive.dismiss');
     Route::put('me/body', UpdateBody::class)->name('fit.body');
     Route::put('me/reminders', UpdateReminders::class)->name('fit.reminders');
+    Route::put('me/api-key', UpdateApiKey::class)->name('fit.apiKey');
+    Route::delete('me/api-key', DestroyApiKey::class)->name('fit.apiKey.destroy');
     Route::get('me/export', ExportData::class)->name('fit.export');
     Route::delete('me', DestroyAccount::class)->name('fit.account.destroy');
 

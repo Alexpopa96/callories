@@ -29,7 +29,6 @@ return [
     ],
 
     'anthropic' => [
-        'key' => env('ANTHROPIC_API_KEY'),
         'model' => env('ANTHROPIC_MODEL', 'claude-sonnet-5'),
         'daily_scan_limit' => (int) env('SCAN_DAILY_LIMIT', 20),
         'daily_assistant_limit' => (int) env('ASSISTANT_DAILY_LIMIT', 30),

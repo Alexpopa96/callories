@@ -16,26 +16,32 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->singleton(Client::class, fn () => new Client(
-            apiKey: (string) config('services.anthropic.key'),
-        ));
+        // every user is billed on their own key, so the client is built per request, never shared
+        $this->app->bind(Client::class, function () {
+            $key = auth()->user()?->anthropic_api_key;
 
-        $this->app->singleton(FoodPhotoAnalyzer::class, fn ($app) => new FoodPhotoAnalyzer(
+            // an empty key makes the SDK auto-detect credentials from the server, which must never happen
+            abort_if(blank($key), 403, 'Setează-ți cheia API Anthropic în Profil ca să folosești funcțiile AI.');
+
+            return new Client(apiKey: $key);
+        });
+
+        $this->app->bind(FoodPhotoAnalyzer::class, fn ($app) => new FoodPhotoAnalyzer(
             $app->make(Client::class),
             config('services.anthropic.model'),
         ));
 
-        $this->app->singleton(FoodTextAnalyzer::class, fn ($app) => new FoodTextAnalyzer(
+        $this->app->bind(FoodTextAnalyzer::class, fn ($app) => new FoodTextAnalyzer(
             $app->make(Client::class),
             config('services.anthropic.model'),
         ));
 
-        $this->app->singleton(NutritionAssistant::class, fn ($app) => new NutritionAssistant(
+        $this->app->bind(NutritionAssistant::class, fn ($app) => new NutritionAssistant(
             $app->make(Client::class),
             config('services.anthropic.model'),
         ));
 
-        $this->app->singleton(WorkoutCoach::class, fn ($app) => new WorkoutCoach(
+        $this->app->bind(WorkoutCoach::class, fn ($app) => new WorkoutCoach(
             $app->make(Client::class),
             config('services.anthropic.model'),
         ));
