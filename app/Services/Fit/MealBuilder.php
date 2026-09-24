@@ -44,7 +44,7 @@ class MealBuilder
             'fat_g' => round((float) $item['fat_g'], 1),
             'fiber_g' => round((float) $item['fiber_g'], 1),
             ...(! empty($item['barcode']) ? ['barcode' => $item['barcode']] : []),
-            ...(str_starts_with($item['image_url'] ?? '', 'https://images.openfoodfacts.org/') ? ['image_url' => $item['image_url']] : []),
+            ...(self::isProductPicture($item['image_url'] ?? null) ? ['image_url' => $item['image_url']] : []),
         ]);
 
         return [
@@ -56,5 +56,14 @@ class MealBuilder
             'fat_g' => round($items->sum('fat_g'), 1),
             'fiber_g' => round($items->sum('fiber_g'), 1),
         ];
+    }
+
+    /**
+     * A product picture is either from Open Food Facts or one the user uploaded for the item.
+     */
+    public static function isProductPicture(?string $url): bool
+    {
+        return $url !== null
+            && (str_starts_with($url, 'https://images.openfoodfacts.org/') || preg_match('#^/storage/meals/\d+/items/[\w.-]+$#', $url) === 1);
     }
 }

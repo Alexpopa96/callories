@@ -43,7 +43,7 @@ class StoreMeal extends Controller
 
         // a meal of scanned products without its own photo gets the first product's picture,
         // downloaded after the response since the Open Food Facts image server can be slow
-        $imageUrl = collect($data['items'])->pluck('image_url')->filter()->first();
+        $imageUrl = collect($data['items'])->pluck('image_url')->first(fn ($url) => str_starts_with((string) $url, 'https://images.openfoodfacts.org/'));
 
         if (! $meal->photo_path && $imageUrl) {
             defer(function () use ($meal, $imageUrl, $barcodes) {

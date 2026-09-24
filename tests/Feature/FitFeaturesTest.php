@@ -118,6 +118,36 @@ class FitFeaturesTest extends TestCase
         $this->assertCount(2, $meal->items);
     }
 
+    public function test_a_product_picture_can_be_uploaded_replaced_and_removed(): void
+    {
+        Storage::fake('public');
+        $user = $this->user();
+        $meal = $this->meal($user);
+
+        $first = $this->actingAs($user)->post('/meals/item-photo', ['photo' => UploadedFile::fake()->image('a.jpg')])
+            ->assertOk()->json('image_url');
+        $this->assertStringStartsWith("/storage/meals/{$user->id}/items/", $first);
+
+        $this->actingAs($user)->put("/meals/{$meal->id}", ['items' => [$this->item(['image_url' => $first])]]);
+        $this->assertSame($first, $meal->refresh()->items[0]['image_url']);
+
+        $second = $this->actingAs($user)->post('/meals/item-photo', ['photo' => UploadedFile::fake()->image('b.jpg')])->json('image_url');
+        $this->actingAs($user)->put("/meals/{$meal->id}", ['items' => [$this->item(['image_url' => $second])]]);
+        $this->assertSame($second, $meal->refresh()->items[0]['image_url']);
+        Storage::disk('public')->assertMissing(substr($first, strlen('/storage/')));
+
+        $this->actingAs($user)->put("/meals/{$meal->id}", ['items' => [$this->item(['image_url' => null])]]);
+        $this->assertArrayNotHasKey('image_url', $meal->refresh()->items[0]);
+        Storage::disk('public')->assertMissing(substr($second, strlen('/storage/')));
+
+        // only Open Food Facts or uploaded pictures are kept
+        $this->actingAs($user)->put("/meals/{$meal->id}", ['items' => [$this->item(['image_url' => 'https://evil.example.com/x.jpg'])]]);
+        $this->assertArrayNotHasKey('image_url', $meal->refresh()->items[0]);
+
+        $this->actingAs($user)->post('/meals/item-photo', ['photo' => UploadedFile::fake()->create('a.pdf', 10, 'application/pdf')])
+            ->assertSessionHasErrors('photo');
+    }
+
     public function test_other_users_meals_cannot_be_edited(): void
     {
         $meal = $this->meal($this->user());

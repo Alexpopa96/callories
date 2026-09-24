@@ -17,6 +17,15 @@ class DestroyMeal extends Controller
             Storage::disk('public')->delete($meal->photo_path);
         }
 
+        // pictures uploaded for single products of this meal
+        $itemPhotos = collect($meal->items)->pluck('image_url')
+            ->filter(fn ($url) => str_starts_with((string) $url, "/storage/meals/{$meal->user_id}/items/"))
+            ->map(fn (string $url) => substr($url, strlen('/storage/')));
+
+        if ($itemPhotos->isNotEmpty()) {
+            Storage::disk('public')->delete($itemPhotos->all());
+        }
+
         $meal->delete();
 
         return back()->with('success', 'Masa a fost ștearsă.');
