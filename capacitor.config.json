@@ -3,7 +3,7 @@
     "appName": "Calorii",
     "webDir": "capacitor-www",
     "server": {
-        "url": "https://REPLACE-WITH-YOUR-DOMAIN",
+        "url": "https://fit.codinguniverse.ro",
         "cleartext": false
     },
     "ios": {

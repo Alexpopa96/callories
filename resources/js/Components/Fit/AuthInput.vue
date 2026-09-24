@@ -1,6 +1,7 @@
 <script setup>
 import {computed, ref} from 'vue';
 import {EyeIcon, EyeSlashIcon} from '@heroicons/vue/24/outline/index.js';
+import {isNativeApp} from '@/Composables/useNativeReminders';
 
 const props = defineProps({
     modelValue: {type: String, default: ''},
@@ -17,6 +18,8 @@ defineEmits(['update:modelValue']);
 
 const reveal = ref(false);
 const inputType = computed(() => (props.type === 'password' && reveal.value ? 'text' : props.type));
+// In the iOS app the keyboard would open on launch and cover the form.
+const shouldAutofocus = computed(() => props.autofocus && !isNativeApp());
 </script>
 
 <template>
@@ -24,7 +27,7 @@ const inputType = computed(() => (props.type === 'password' && reveal.value ? 't
         <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-white/50">{{ label }}</span>
         <span class="relative block">
             <input :value="modelValue" :type="inputType" :placeholder="placeholder" :autocomplete="autocomplete"
-                   :inputmode="inputmode" :autofocus="autofocus"
+                   :inputmode="inputmode" :autofocus="shouldAutofocus"
                    class="h-14 w-full rounded-2xl border bg-white/5 px-4 text-base text-white placeholder:text-white/30 focus:border-lime focus:bg-white/[0.07] focus:ring-0"
                    :class="[error ? 'border-rose' : 'border-white/10', type === 'password' ? 'pr-12' : '']"
                    @input="$emit('update:modelValue', $event.target.value)"/>

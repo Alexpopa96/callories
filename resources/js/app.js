@@ -8,11 +8,15 @@ import { ZiggyVue } from '../../vendor/tightenco/ziggy';
 import Toast from "vue-toastification";
 import { useToast } from "vue-toastification";
 import 'animate.css';
-import { listenForNotificationTaps } from './Composables/useNativeReminders';
+import { isNativeApp, listenForNotificationTaps } from './Composables/useNativeReminders';
+import { Keyboard } from '@capacitor/keyboard';
 import "vue-toastification/dist/index.css";
 import "vue-multiselect/dist/vue-multiselect.css";
 
 listenForNotificationTaps();
+
+// Hide the ˄ ˅ ✓ bar iOS shows above the keyboard in web views.
+if (isNativeApp()) Keyboard.setAccessoryBarVisible({ isVisible: false });
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
