@@ -133,14 +133,15 @@ class ReminderPlanner
             }
         }
 
-        if ($now->hour === 21 && $progress['avgCalories'] > 0 && $challenge->calorie_goal > 0) {
-            $deviation = abs($progress['avgCalories'] - $challenge->calorie_goal) / $challenge->calorie_goal;
+        if ($now->hour === 21 && $progress['avgCalories'] > 0 && $progress['avgCalorieBudget'] > 0) {
+            $budget = $progress['avgCalorieBudget'];
+            $deviation = abs($progress['avgCalories'] - $budget) / $budget;
 
             if ($deviation > 0.2) {
-                $over = $progress['avgCalories'] > $challenge->calorie_goal;
+                $over = $progress['avgCalories'] > $budget;
                 $messages[] = [
                     'title' => $over ? 'Ești peste ritm' : 'Ești sub ritm',
-                    'body' => "Media ta e {$progress['avgCalories']} kcal/zi față de ținta de {$challenge->calorie_goal} kcal.",
+                    'body' => "Media ta e {$progress['avgCalories']} kcal/zi față de ținta de {$budget} kcal (inclusiv caloriile arse).",
                     'url' => '/challenge',
                 ];
             }

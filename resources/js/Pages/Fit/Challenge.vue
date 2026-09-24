@@ -228,7 +228,7 @@ const chart = computed(() => {
                 <div class="mt-3 grid grid-cols-2 gap-3">
                     <div>
                         <p class="text-2xl font-extrabold leading-none">{{ challenge.targets.calories }}</p>
-                        <p class="mt-1 text-[11px] text-white/45">kcal/zi (medie reală: {{ challenge.progress.avgCalories }})</p>
+                        <p class="mt-1 text-[11px] text-white/45">kcal/zi (medie reală: {{ challenge.progress.avgCalories }}<template v-if="challenge.progress.avgCalorieBudget > challenge.targets.calories"> din {{ challenge.progress.avgCalorieBudget }} cu sportul</template>)</p>
                         <p class="mt-1 text-xs font-bold text-lime">{{ challenge.progress.pctCalories }}% realizat</p>
                         <div class="mt-1 h-1.5 overflow-hidden rounded-full bg-white/10">
                             <div class="h-full rounded-full bg-lime transition-all duration-700" :style="{width: `${challenge.progress.pctCalories}%`}"></div>

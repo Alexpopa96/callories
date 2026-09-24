@@ -7,6 +7,7 @@ import {ChevronRightIcon, TrophyIcon} from '@heroicons/vue/24/outline/index.js';
 const props = defineProps({
     challenge: {type: Object, default: null},
     todayCalories: {type: Number, default: 0},
+    exerciseCalories: {type: Number, default: 0},
 });
 
 const goalLabels = {
@@ -14,6 +15,8 @@ const goalLabels = {
     gain_weight: 'Creștere în greutate',
     gain_muscle: 'Masă musculară',
 };
+
+const calorieBudget = computed(() => (props.challenge?.calorieGoal ?? 0) + props.exerciseCalories);
 
 const goalLabel = computed(() => goalLabels[props.challenge?.goal] ?? '');
 
@@ -43,8 +46,8 @@ const weightLabel = computed(() => {
             </div>
             <div class="mt-3 grid grid-cols-2 gap-2 border-t border-white/5 pt-3 text-center">
                 <div>
-                    <p class="text-sm font-extrabold">{{ Math.round(todayCalories) }} <span class="text-xs font-semibold text-white/45">/ {{ challenge.calorieGoal }} kcal</span></p>
-                    <p class="mt-0.5 text-[11px] text-white/40">calorii azi</p>
+                    <p class="text-sm font-extrabold">{{ Math.round(todayCalories) }} <span class="text-xs font-semibold text-white/45">/ {{ calorieBudget }} kcal</span></p>
+                    <p class="mt-0.5 text-[11px] text-white/40">{{ exerciseCalories > 0 ? `calorii azi · +${exerciseCalories} arse` : 'calorii azi' }}</p>
                 </div>
                 <div>
                     <p class="text-sm font-extrabold">{{ challenge.pctWeight !== null ? `${challenge.pctWeight}%` : '—' }}</p>

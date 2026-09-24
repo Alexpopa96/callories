@@ -201,7 +201,7 @@ function removeMeal(meal) {
             </div>
         </section>
 
-        <ChallengeCard :challenge="challenge" :today-calories="totals.calories"/>
+        <ChallengeCard :challenge="challenge" :today-calories="totals.calories" :exercise-calories="exerciseCalories"/>
 
         <div class="mt-4 grid grid-cols-2 gap-4">
             <button type="button" class="flex flex-col justify-start rounded-[1.75rem] border border-white/10 bg-panel p-4 text-left transition active:scale-[0.98]"
