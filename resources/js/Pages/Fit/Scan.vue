@@ -7,6 +7,7 @@ import MealItemsEditor from '@/Components/Fit/MealItemsEditor.vue';
 import BarcodeUnknownForm from '@/Components/Fit/BarcodeUnknownForm.vue';
 import MealRemark from '@/Components/Fit/MealRemark.vue';
 import {useMealItems} from '@/Composables/useMealItems.js';
+import {shrinkImage} from '@/Composables/shrinkImage.js';
 
 const BarcodeScanner = defineAsyncComponent(() => import('@/Components/Fit/BarcodeScanner.vue'));
 import {CameraIcon, PencilSquareIcon, PhotoIcon, QrCodeIcon} from '@heroicons/vue/24/outline/index.js';
@@ -63,20 +64,7 @@ function revokePreview() {
 
 onBeforeUnmount(revokePreview);
 
-async function shrink(file) {
-    try {
-        const bitmap = await createImageBitmap(file);
-        const scale = Math.min(1, MAX_SIDE / Math.max(bitmap.width, bitmap.height));
-        const canvas = document.createElement('canvas');
-        canvas.width = Math.round(bitmap.width * scale);
-        canvas.height = Math.round(bitmap.height * scale);
-        canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-        const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.85));
-        return blob ? new File([blob], 'photo.jpg', {type: 'image/jpeg'}) : file;
-    } catch {
-        return file;
-    }
-}
+const shrink = (file) => shrinkImage(file, MAX_SIDE);
 
 function reset() {
     revokePreview();

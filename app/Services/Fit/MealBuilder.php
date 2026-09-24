@@ -59,11 +59,10 @@ class MealBuilder
     }
 
     /**
-     * A product picture is either from Open Food Facts or one the user uploaded for the item.
+     * Product pictures on items only come from Open Food Facts.
      */
     public static function isProductPicture(?string $url): bool
     {
-        return $url !== null
-            && (str_starts_with($url, 'https://images.openfoodfacts.org/') || preg_match('#^/storage/meals/\d+/items/[\w.-]+$#', $url) === 1);
+        return $url !== null && str_starts_with($url, 'https://images.openfoodfacts.org/');
     }
 }

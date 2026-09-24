@@ -29,7 +29,6 @@ use App\Http\Controllers\Fit\ShowWorkout;
 use App\Http\Controllers\Fit\StoreChallenge;
 use App\Http\Controllers\Fit\StoreCustomBarcode;
 use App\Http\Controllers\Fit\StoreFavorite;
-use App\Http\Controllers\Fit\StoreItemPhoto;
 use App\Http\Controllers\Fit\StoreMeal;
 use App\Http\Controllers\Fit\StoreWeight;
 use App\Http\Controllers\Fit\StoreWorkout;
@@ -69,7 +68,6 @@ Route::middleware(['auth'])->group(function () {
     Route::get('meals/create', AddMeal::class)->name('fit.meals.create');
     Route::post('meals/analyze-text', AnalyzeText::class)->middleware(EnsureAnthropicKey::class)->name('fit.meals.analyzeText');
     Route::post('meals/refine', RefineMeal::class)->middleware(EnsureAnthropicKey::class)->name('fit.meals.refine');
-    Route::post('meals/item-photo', StoreItemPhoto::class)->name('fit.meals.itemPhoto');
     Route::post('meals', StoreMeal::class)->name('fit.meals.store');
     Route::get('meals/{meal}/edit', EditMeal::class)->name('fit.meals.edit');
     Route::put('meals/{meal}', UpdateMeal::class)->name('fit.meals.update');
