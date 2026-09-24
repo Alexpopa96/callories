@@ -118,34 +118,41 @@ class FitFeaturesTest extends TestCase
         $this->assertCount(2, $meal->items);
     }
 
-    public function test_a_product_picture_can_be_uploaded_replaced_and_removed(): void
+    public function test_the_meal_photo_is_replaced_or_removed_only_when_saving(): void
     {
         Storage::fake('public');
         $user = $this->user();
         $meal = $this->meal($user);
 
-        $first = $this->actingAs($user)->post('/meals/item-photo', ['photo' => UploadedFile::fake()->image('a.jpg')])
-            ->assertOk()->json('image_url');
-        $this->assertStringStartsWith("/storage/meals/{$user->id}/items/", $first);
+        $this->actingAs($user)->post("/meals/{$meal->id}", [
+            '_method' => 'put',
+            'items' => [$this->item()],
+            'photo' => UploadedFile::fake()->image('a.jpg'),
+        ])->assertRedirect();
+        $first = $meal->refresh()->photo_path;
+        Storage::disk('public')->assertExists($first);
 
-        $this->actingAs($user)->put("/meals/{$meal->id}", ['items' => [$this->item(['image_url' => $first])]]);
-        $this->assertSame($first, $meal->refresh()->items[0]['image_url']);
+        // saving without touching the photo keeps it
+        $this->actingAs($user)->put("/meals/{$meal->id}", ['items' => [$this->item()]]);
+        $this->assertSame($first, $meal->refresh()->photo_path);
 
-        $second = $this->actingAs($user)->post('/meals/item-photo', ['photo' => UploadedFile::fake()->image('b.jpg')])->json('image_url');
-        $this->actingAs($user)->put("/meals/{$meal->id}", ['items' => [$this->item(['image_url' => $second])]]);
-        $this->assertSame($second, $meal->refresh()->items[0]['image_url']);
-        Storage::disk('public')->assertMissing(substr($first, strlen('/storage/')));
+        $this->actingAs($user)->post("/meals/{$meal->id}", [
+            '_method' => 'put',
+            'items' => [$this->item()],
+            'photo' => UploadedFile::fake()->image('b.jpg'),
+        ]);
+        $second = $meal->refresh()->photo_path;
+        $this->assertNotSame($first, $second);
+        Storage::disk('public')->assertMissing($first);
 
-        $this->actingAs($user)->put("/meals/{$meal->id}", ['items' => [$this->item(['image_url' => null])]]);
-        $this->assertArrayNotHasKey('image_url', $meal->refresh()->items[0]);
-        Storage::disk('public')->assertMissing(substr($second, strlen('/storage/')));
+        $this->actingAs($user)->put("/meals/{$meal->id}", ['items' => [$this->item()], 'remove_photo' => true]);
+        $this->assertNull($meal->refresh()->photo_path);
+        Storage::disk('public')->assertMissing($second);
 
-        // only Open Food Facts or uploaded pictures are kept
-        $this->actingAs($user)->put("/meals/{$meal->id}", ['items' => [$this->item(['image_url' => 'https://evil.example.com/x.jpg'])]]);
-        $this->assertArrayNotHasKey('image_url', $meal->refresh()->items[0]);
-
-        $this->actingAs($user)->post('/meals/item-photo', ['photo' => UploadedFile::fake()->create('a.pdf', 10, 'application/pdf')])
-            ->assertSessionHasErrors('photo');
+        $this->actingAs($user)->put("/meals/{$meal->id}", [
+            'items' => [$this->item()],
+            'photo' => UploadedFile::fake()->create('a.pdf', 10, 'application/pdf'),
+        ])->assertSessionHasErrors('photo');
     }
 
     public function test_other_users_meals_cannot_be_edited(): void
