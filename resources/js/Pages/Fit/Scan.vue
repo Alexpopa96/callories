@@ -5,6 +5,7 @@ import axios from 'axios';
 import FitLayout from '@/Layouts/FitLayout.vue';
 import MealItemsEditor from '@/Components/Fit/MealItemsEditor.vue';
 import BarcodeUnknownForm from '@/Components/Fit/BarcodeUnknownForm.vue';
+import MealRemark from '@/Components/Fit/MealRemark.vue';
 import {useMealItems} from '@/Composables/useMealItems.js';
 
 const BarcodeScanner = defineAsyncComponent(() => import('@/Components/Fit/BarcodeScanner.vue'));
@@ -35,6 +36,7 @@ const barcodeLooking = ref(false);
 const barcodeError = ref(null);
 const manualCode = ref('');
 const unknownCode = ref(null);
+const barcodeNotes = ref(null);
 const cameraSupported = typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getUserMedia;
 
 const showFooter = computed(() => (flow.value === 'photo' && result.value?.is_food)
@@ -88,6 +90,7 @@ function reset() {
     barcodeError.value = null;
     manualCode.value = '';
     unknownCode.value = null;
+    barcodeNotes.value = null;
     if (cameraInput.value) cameraInput.value.value = '';
     if (galleryInput.value) galleryInput.value.value = '';
 }
@@ -109,10 +112,7 @@ async function onFileChange(event) {
         body.append('photo', prepared);
         const {data} = await axios.post('/scan/analyze', body);
         result.value = data;
-        list.set(data.items);
-        data.items.forEach((item, i) => {
-            if (item.pieces > 1) list.items.value[i]._pieceRatio = list.items.value[i].portion_grams / item.pieces;
-        });
+        list.setAnalyzed(data.items);
         scansLeft.value = data.scans_left ?? null;
     } catch (e) {
         if (e.response?.data?.scans_left !== undefined) scansLeft.value = e.response.data.scans_left;
@@ -122,6 +122,12 @@ async function onFileChange(event) {
     } finally {
         analyzing.value = false;
     }
+}
+
+function onRefined(data) {
+    list.setAnalyzed(data.items);
+    if (flow.value === 'photo') result.value = {...result.value, confidence: data.confidence, notes: data.notes};
+    else barcodeNotes.value = data.notes || null;
 }
 
 function save() {
@@ -172,7 +178,7 @@ function saveBarcodeMeal() {
     form.photo = null;
     form.items = list.payload();
     form.confidence = null;
-    form.notes = null;
+    form.notes = barcodeNotes.value;
     form.post('/meals');
 }
 
@@ -276,6 +282,8 @@ function saveMeal() {
                 <h3 class="mb-2 mt-5 text-sm font-bold uppercase tracking-wider text-white/50">Produse scanate</h3>
                 <p class="mb-2 text-xs text-white/40">Corectează porția dacă produsul e altă cantitate decât cea standard.</p>
                 <MealItemsEditor :items="list.items.value" @grams="list.setGrams" @remove="list.remove"/>
+                <MealRemark class="mt-3" :items="list.payload()" :notes="barcodeNotes" @refined="onRefined"/>
+                <p v-if="barcodeNotes" class="mt-2 text-sm text-white/55">{{ barcodeNotes }}</p>
 
                 <p v-if="barcodeLooking" class="mt-3 text-sm text-white/55">Caut produsul…</p>
                 <p v-if="barcodeError" class="mt-3 text-sm text-rose">{{ barcodeError }}</p>
@@ -366,6 +374,7 @@ function saveMeal() {
 
                 <p v-if="result.notes" class="mt-3 text-sm text-white/55">{{ result.notes }}</p>
                 <p class="mt-2 text-xs text-white/35">Valorile sunt estimări din poză, nu măsurători exacte.</p>
+                <MealRemark v-if="list.items.value.length" class="mt-3" :items="list.payload()" :notes="result.notes" @refined="onRefined"/>
                 <p v-if="form.errors.items || form.errors.date" class="mt-3 text-sm text-rose">
                     {{ form.errors.items || form.errors.date }}
                 </p>

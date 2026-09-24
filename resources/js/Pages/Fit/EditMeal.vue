@@ -3,6 +3,7 @@ import {ref} from 'vue';
 import {Head, useForm} from '@inertiajs/vue3';
 import FitLayout from '@/Layouts/FitLayout.vue';
 import MealItemsEditor from '@/Components/Fit/MealItemsEditor.vue';
+import MealRemark from '@/Components/Fit/MealRemark.vue';
 import {useMealItems} from '@/Composables/useMealItems.js';
 
 const props = defineProps({
@@ -12,11 +13,18 @@ const props = defineProps({
 
 const list = useMealItems(props.meal.items);
 const title = ref(props.meal.title);
-const form = useForm({title: props.meal.title, items: []});
+const notes = ref(props.meal.notes);
+const form = useForm({title: props.meal.title, items: [], notes: null});
+
+function onRefined(data) {
+    list.setAnalyzed(data.items);
+    notes.value = data.notes || notes.value;
+}
 
 function save() {
     form.title = title.value;
     form.items = list.payload();
+    form.notes = notes.value;
     form.put(`/meals/${props.meal.id}`);
 }
 </script>
@@ -44,7 +52,11 @@ function save() {
         <p v-if="!list.items.value.length" class="rounded-2xl border border-dashed border-white/15 p-5 text-center text-sm text-white/50">
             Masa nu are alimente. Șterge-o din pagina „Azi” sau adaugă una nouă.
         </p>
-        <MealItemsEditor v-else :items="list.items.value" @grams="list.setGrams" @remove="list.remove"/>
+        <template v-else>
+            <MealItemsEditor :items="list.items.value" @grams="list.setGrams" @remove="list.remove"/>
+            <MealRemark class="mt-3" :items="list.payload()" :notes="notes" @refined="onRefined"/>
+            <p v-if="notes" class="mt-2 text-sm text-white/55">{{ notes }}</p>
+        </template>
 
         <p v-if="form.errors.items" class="mt-3 text-sm text-rose">{{ form.errors.items }}</p>
 

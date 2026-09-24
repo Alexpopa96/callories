@@ -5,6 +5,7 @@ import axios from 'axios';
 import FitLayout from '@/Layouts/FitLayout.vue';
 import MealItemsEditor from '@/Components/Fit/MealItemsEditor.vue';
 import BarcodeUnknownForm from '@/Components/Fit/BarcodeUnknownForm.vue';
+import MealRemark from '@/Components/Fit/MealRemark.vue';
 import {useMealItems} from '@/Composables/useMealItems.js';
 
 const BarcodeScanner = defineAsyncComponent(() => import('@/Components/Fit/BarcodeScanner.vue'));
@@ -30,11 +31,13 @@ const meal = useMealItems();
 const title = ref('');
 const favoriteNames = computed(() => props.favorites.map((food) => food.name));
 
-const form = useForm({date: props.date, title: '', items: []});
+const form = useForm({date: props.date, title: '', items: [], notes: null});
+const refineNotes = ref(null);
 
 function save() {
     form.title = title.value;
     form.items = meal.payload();
+    form.notes = refineNotes.value;
     form.post('/meals');
 }
 
@@ -105,11 +108,7 @@ async function analyzeText() {
             return;
         }
         meal.removeItems(lastAiItems.value);
-        lastAiItems.value = data.items.map((item) => {
-            const added = meal.add(item);
-            if (item.pieces > 1) added._pieceRatio = added.portion_grams / item.pieces;
-            return added;
-        });
+        lastAiItems.value = data.items.map(meal.addAnalyzed);
         if (data.notes) textNotes.value = data.notes;
         description.value = '';
         aiAdded.value = true;
@@ -160,6 +159,12 @@ function onCustomSaved(item) {
     meal.add(item);
     unknownCode.value = null;
     code.value = '';
+}
+
+function onRefined(data) {
+    meal.setAnalyzed(data.items);
+    lastAiItems.value = [];
+    refineNotes.value = data.notes || null;
 }
 
 const fmt = (value) => Math.round(value).toLocaleString('ro-RO');
@@ -330,6 +335,8 @@ const fmt = (value) => Math.round(value).toLocaleString('ro-RO');
 
             <MealItemsEditor :items="meal.items.value" :favorite-names="favoriteNames" allow-favorite
                              @grams="meal.setGrams" @remove="meal.remove" @favorite="toggleFavorite"/>
+            <MealRemark class="mt-3" :items="meal.payload()" :notes="refineNotes" @refined="onRefined"/>
+            <p v-if="refineNotes" class="mt-2 text-sm text-white/55">{{ refineNotes }}</p>
 
             <input v-model="title" type="text" maxlength="120" placeholder="Nume masă (opțional)"
                    class="mt-3 h-12 w-full rounded-2xl border border-white/10 bg-white/5 px-4 text-base text-white placeholder:text-white/30 focus:border-lime focus:ring-0"/>

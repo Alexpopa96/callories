@@ -8,6 +8,8 @@ use App\Services\Anthropic\Models;
 
 class FoodTextAnalyzer
 {
+    use ReadsFoodAnalysis;
+
     private const SYSTEM_PROMPT = <<<'TXT'
 Ești un nutriționist care estimează valorile nutriționale ale unei mese descrise în text de utilizator.
 Identifică fiecare aliment sau preparat distinct din descriere, estimează porția în grame pe baza
@@ -59,71 +61,6 @@ TXT;
             throw new FoodAnalysisException('Serviciul de analiză nu este disponibil momentan. Încearcă din nou.', 0, $e);
         }
 
-        if ($message->stopReason !== 'end_turn') {
-            throw new FoodAnalysisException('Analiza nu a putut fi finalizată. Încearcă cu altă descriere.');
-        }
-
-        $data = null;
-        foreach ($message->content as $block) {
-            if ($block->type === 'text') {
-                $data = json_decode($block->text, true);
-                break;
-            }
-        }
-
-        if (! is_array($data) || ! isset($data['items'])) {
-            throw new FoodAnalysisException('Răspunsul de la analiză a fost invalid. Încearcă din nou.');
-        }
-
-        return $this->withTotals($data);
-    }
-
-    private function withTotals(array $data): array
-    {
-        $totals = ['calories' => 0.0, 'protein_g' => 0.0, 'carbs_g' => 0.0, 'fat_g' => 0.0, 'fiber_g' => 0.0];
-
-        foreach ($data['items'] as $item) {
-            foreach ($totals as $key => $sum) {
-                $totals[$key] = $sum + (float) ($item[$key] ?? 0);
-            }
-        }
-
-        $data['totals'] = array_map(fn (float $value) => round($value, 1), $totals);
-
-        return $data;
-    }
-
-    private function schema(): array
-    {
-        $number = ['type' => 'number'];
-
-        return [
-            'type' => 'object',
-            'properties' => [
-                'is_food' => ['type' => 'boolean'],
-                'items' => [
-                    'type' => 'array',
-                    'items' => [
-                        'type' => 'object',
-                        'properties' => [
-                            'name' => ['type' => 'string'],
-                            'portion_grams' => $number,
-                            'pieces' => $number,
-                            'calories' => $number,
-                            'protein_g' => $number,
-                            'carbs_g' => $number,
-                            'fat_g' => $number,
-                            'fiber_g' => $number,
-                        ],
-                        'required' => ['name', 'portion_grams', 'pieces', 'calories', 'protein_g', 'carbs_g', 'fat_g', 'fiber_g'],
-                        'additionalProperties' => false,
-                    ],
-                ],
-                'confidence' => ['type' => 'string', 'enum' => ['low', 'medium', 'high']],
-                'notes' => ['type' => 'string'],
-            ],
-            'required' => ['is_food', 'items', 'confidence', 'notes'],
-            'additionalProperties' => false,
-        ];
+        return $this->read($message, 'Analiza nu a putut fi finalizată. Încearcă cu altă descriere.');
     }
 }

@@ -24,6 +24,7 @@ class EditMeal extends Controller
                 'photoUrl' => $meal->photoUrl(),
                 'items' => $meal->items ?? [],
                 'calories' => $meal->calories,
+                'notes' => $meal->notes,
             ],
             'dateLabel' => DayStats::label($date),
         ]);

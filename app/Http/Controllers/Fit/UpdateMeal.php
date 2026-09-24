@@ -17,9 +17,13 @@ class UpdateMeal extends Controller
         $data = $request->validate([
             'title' => ['nullable', 'string', 'max:120'],
             ...MealBuilder::itemRules(),
+            'notes' => ['nullable', 'string', 'max:500'],
         ]);
 
-        $meal->update(MealBuilder::attributes($data['items'], $data['title'] ?? null));
+        $meal->update([
+            ...MealBuilder::attributes($data['items'], $data['title'] ?? null),
+            ...(array_key_exists('notes', $data) ? ['notes' => $data['notes']] : []),
+        ]);
 
         return redirect('/today?date='.CarbonImmutable::parse($meal->eaten_on)->toDateString())->with('success', 'Masa a fost actualizată.');
     }

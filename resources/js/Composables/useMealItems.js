@@ -31,6 +31,13 @@ export function rescale(item, grams) {
     }
 }
 
+/** Editable copy of an AI-estimated item, keeping the grams-per-piece ratio when it was counted in pieces. */
+export function fromAnalysis(item) {
+    const editable = toEditable(item);
+    if (item.pieces > 1) editable._pieceRatio = editable.portion_grams / item.pieces;
+    return editable;
+}
+
 export function toPayload(item) {
     return {
         name: item.name,
@@ -62,8 +69,14 @@ export function useMealItems(initial = []) {
         items,
         totals,
         set: (list) => (items.value = list.map(toEditable)),
+        setAnalyzed: (list) => (items.value = list.map(fromAnalysis)),
         add: (item) => {
             const editable = toEditable(item);
+            items.value.push(editable);
+            return editable;
+        },
+        addAnalyzed: (item) => {
+            const editable = fromAnalysis(item);
             items.value.push(editable);
             return editable;
         },

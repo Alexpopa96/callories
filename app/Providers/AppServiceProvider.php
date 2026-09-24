@@ -5,6 +5,7 @@ namespace App\Providers;
 use Anthropic\Client;
 use App\Services\Calories\FoodPhotoAnalyzer;
 use App\Services\Calories\FoodTextAnalyzer;
+use App\Services\Calories\MealRefiner;
 use App\Services\Fit\NutritionAssistant;
 use App\Services\Fit\WorkoutCoach;
 use Illuminate\Support\ServiceProvider;
@@ -32,6 +33,11 @@ class AppServiceProvider extends ServiceProvider
         ));
 
         $this->app->bind(FoodTextAnalyzer::class, fn ($app) => new FoodTextAnalyzer(
+            $app->make(Client::class),
+            auth()->user()?->anthropicModel() ?? config('services.anthropic.model'),
+        ));
+
+        $this->app->bind(MealRefiner::class, fn ($app) => new MealRefiner(
             $app->make(Client::class),
             auth()->user()?->anthropicModel() ?? config('services.anthropic.model'),
         ));

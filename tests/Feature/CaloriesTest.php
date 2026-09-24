@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\User;
 use App\Services\Calories\FoodAnalysisException;
 use App\Services\Calories\FoodPhotoAnalyzer;
+use App\Services\Calories\MealRefiner;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -91,6 +92,68 @@ class CaloriesTest extends TestCase
             ->postJson('/scan/analyze', ['photo' => UploadedFile::fake()->image('meal.jpg')])
             ->assertStatus(502)
             ->assertJsonPath('message', 'Serviciul nu este disponibil.');
+    }
+
+    public function test_a_meal_is_recalculated_from_a_remark(): void
+    {
+        $refined = [
+            'is_food' => true,
+            'items' => [[...$this->meal(), 'portion_grams' => 150, 'calories' => 260, 'pieces' => 1]],
+            'totals' => ['calories' => 260, 'protein_g' => 22, 'carbs_g' => 60, 'fat_g' => 20, 'fiber_g' => 3],
+            'confidence' => 'high',
+            'notes' => 'Am înjumătățit porția.',
+        ];
+
+        $this->mock(MealRefiner::class, function ($mock) use ($refined) {
+            $mock->shouldReceive('refine')->once()
+                ->with([$this->meal()], 'Am mâncat doar jumătate', 'Am presupus paste fierte.')
+                ->andReturn($refined);
+        });
+
+        $this->actingAs($this->user())
+            ->postJson('/meals/refine', [
+                'items' => [$this->meal()],
+                'remark' => '  Am mâncat doar jumătate ',
+                'notes' => 'Am presupus paste fierte.',
+            ])
+            ->assertOk()
+            ->assertJsonPath('items.0.calories', 260)
+            ->assertJsonPath('notes', 'Am înjumătățit porția.');
+    }
+
+    public function test_a_remark_is_required_to_recalculate(): void
+    {
+        $this->mock(MealRefiner::class)->shouldNotReceive('refine');
+
+        $this->actingAs($this->user())
+            ->postJson('/meals/refine', ['items' => [$this->meal()], 'remark' => ''])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('remark');
+    }
+
+    public function test_recalculating_needs_an_api_key(): void
+    {
+        $this->mock(MealRefiner::class)->shouldNotReceive('refine');
+
+        $this->actingAs($this->user(['anthropic_api_key' => null]))
+            ->postJson('/meals/refine', ['items' => [$this->meal()], 'remark' => 'era cu smântână'])
+            ->assertForbidden()
+            ->assertJsonPath('missing_api_key', true);
+    }
+
+    public function test_editing_a_meal_keeps_its_notes_unless_new_ones_are_sent(): void
+    {
+        $user = $this->user();
+        $meal = $user->meals()->create([
+            'eaten_on' => CarbonImmutable::today()->toDateString(), 'title' => 'Paste', 'items' => [$this->meal()],
+            'calories' => 520, 'protein_g' => 22, 'carbs_g' => 60, 'fat_g' => 20, 'fiber_g' => 3, 'notes' => 'Inițial',
+        ]);
+
+        $this->actingAs($user)->put("/meals/{$meal->id}", ['items' => [$this->meal()]])->assertRedirect();
+        $this->assertSame('Inițial', $meal->fresh()->notes);
+
+        $this->actingAs($user)->put("/meals/{$meal->id}", ['items' => [$this->meal()], 'notes' => 'Cu smântână'])->assertRedirect();
+        $this->assertSame('Cu smântână', $meal->fresh()->notes);
     }
 
     public function test_a_meal_is_saved_with_recomputed_totals_and_photo(): void
