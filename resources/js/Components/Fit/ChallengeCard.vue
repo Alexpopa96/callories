@@ -18,6 +18,25 @@ const goalLabels = {
 
 const calorieBudget = computed(() => (props.challenge?.calorieGoal ?? 0) + props.exerciseCalories);
 
+// the bar spans the whole budget, or what was eaten if that went past it
+const calorieBar = computed(() => {
+    const goal = props.challenge?.calorieGoal ?? 0;
+    const eaten = Math.round(props.todayCalories);
+    const scale = Math.max(calorieBudget.value, eaten, 1);
+    const pct = (value) => (value / scale) * 100;
+
+    return {
+        eaten,
+        remaining: calorieBudget.value - eaten,
+        goalPct: pct(goal),
+        budgetPct: pct(calorieBudget.value),
+        eatenPct: pct(Math.min(eaten, calorieBudget.value)),
+        overPct: pct(Math.max(0, eaten - calorieBudget.value)),
+    };
+});
+
+const fmt = (value) => Math.round(value).toLocaleString('ro-RO');
+
 const goalLabel = computed(() => goalLabels[props.challenge?.goal] ?? '');
 
 const weightLabel = computed(() => {
@@ -44,14 +63,43 @@ const weightLabel = computed(() => {
                 </div>
                 <ChevronRightIcon class="size-5 shrink-0 text-white/35"/>
             </div>
-            <div class="mt-3 grid grid-cols-2 gap-2 border-t border-white/5 pt-3 text-center">
-                <div>
-                    <p class="text-sm font-extrabold">{{ Math.round(todayCalories) }} <span class="text-xs font-semibold text-white/45">/ {{ calorieBudget }} kcal</span></p>
-                    <p class="mt-0.5 text-[11px] text-white/40">{{ exerciseCalories > 0 ? `calorii azi · +${exerciseCalories} arse` : 'calorii azi' }}</p>
+            <div class="mt-3 border-t border-white/5 pt-3">
+                <div class="flex items-baseline justify-between">
+                    <p class="text-[11px] font-semibold uppercase tracking-wider text-white/45">Calorii azi</p>
+                    <p class="text-sm font-extrabold">
+                        {{ fmt(calorieBar.eaten) }} <span class="text-xs font-semibold text-white/45">/ {{ fmt(calorieBudget) }} kcal</span>
+                    </p>
                 </div>
-                <div>
+                <div class="relative mt-2 h-3 overflow-hidden rounded-full bg-white/10">
+                    <div v-if="exerciseCalories > 0" class="absolute inset-y-0 bg-sun/25"
+                         :style="{left: `${calorieBar.goalPct}%`, width: `${calorieBar.budgetPct - calorieBar.goalPct}%`}"></div>
+                    <div class="absolute inset-y-0 left-0 rounded-full bg-lime transition-all duration-700"
+                         :style="{width: `${calorieBar.eatenPct}%`}"></div>
+                    <div v-if="calorieBar.overPct > 0" class="absolute inset-y-0 bg-rose transition-all duration-700"
+                         :style="{left: `${calorieBar.budgetPct}%`, width: `${calorieBar.overPct}%`}"></div>
+                    <div v-if="exerciseCalories > 0" class="absolute inset-y-0 w-0.5 bg-ink/70"
+                         :style="{left: `${calorieBar.goalPct}%`}"></div>
+                </div>
+                <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-white/55">
+                    <span class="flex items-center gap-1"><span class="size-2 rounded-full bg-lime"></span>mâncat {{ fmt(calorieBar.eaten) }}</span>
+                    <span v-if="exerciseCalories > 0" class="flex items-center gap-1"><span class="size-2 rounded-full bg-sun"></span>ars +{{ fmt(exerciseCalories) }}</span>
+                    <span class="ml-auto font-bold" :class="calorieBar.remaining >= 0 ? 'text-white/70' : 'text-rose'">
+                        {{ calorieBar.remaining >= 0 ? `${fmt(calorieBar.remaining)} rămase` : `+${fmt(-calorieBar.remaining)} peste` }}
+                    </span>
+                </div>
+            </div>
+            <div class="mt-3 border-t border-white/5 pt-3">
+                <div class="flex items-baseline justify-between">
+                    <p class="text-[11px] font-semibold uppercase tracking-wider text-white/45">Obiectiv greutate</p>
                     <p class="text-sm font-extrabold">{{ challenge.pctWeight !== null ? `${challenge.pctWeight}%` : '—' }}</p>
-                    <p class="mt-0.5 text-[11px] text-white/40">din obiectivul de greutate</p>
+                </div>
+                <div class="mt-2 h-3 overflow-hidden rounded-full bg-white/10">
+                    <div class="h-full rounded-full bg-rose transition-all duration-700" :style="{width: `${challenge.pctWeight ?? 0}%`}"></div>
+                </div>
+                <div class="mt-1.5 flex justify-between text-[11px] text-white/45">
+                    <span>{{ challenge.startWeightKg.toLocaleString('ro-RO') }} kg</span>
+                    <span class="font-bold text-white/75">acum {{ challenge.currentWeightKg.toLocaleString('ro-RO') }} kg</span>
+                    <span>{{ challenge.targetWeightKg.toLocaleString('ro-RO') }} kg</span>
                 </div>
             </div>
         </template>
