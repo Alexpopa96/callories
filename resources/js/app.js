@@ -31,6 +31,7 @@ createInertiaApp({
             .use(ZiggyVue);
             inertiaApp.config.globalProperties.$toast = useToast();
             inertiaApp.mount(el);
+            window.hideSplash?.();
     },
     progress: {
         color: '#4B5563',

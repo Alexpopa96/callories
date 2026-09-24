@@ -24,6 +24,7 @@
     @inertiaHead
 </head>
 <body class="bg-ink font-sans text-white antialiased">
+@include('partials.splash')
 @inertia
 </body>
 </html>
