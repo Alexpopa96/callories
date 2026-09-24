@@ -226,22 +226,26 @@ const chart = computed(() => {
                     <FireIcon class="size-4 text-lime"/> Ținte zilnice
                 </p>
                 <div class="mt-3 grid grid-cols-2 gap-3">
-                    <div>
+                    <div class="flex flex-col">
                         <p class="text-2xl font-extrabold leading-none">{{ challenge.targets.calories }}</p>
                         <p class="mt-1 text-[11px] text-white/45">kcal/zi (medie reală: {{ challenge.progress.avgCalories }}<template v-if="challenge.progress.avgCalorieBudget > challenge.targets.calories"> din {{ challenge.progress.avgCalorieBudget }} cu sportul</template>)</p>
-                        <p class="mt-1 text-xs font-bold text-lime">{{ challenge.progress.pctCalories }}% realizat</p>
-                        <div class="mt-1 h-1.5 overflow-hidden rounded-full bg-white/10">
-                            <div class="h-full rounded-full bg-lime transition-all duration-700" :style="{width: `${challenge.progress.pctCalories}%`}"></div>
+                        <div class="mt-auto pt-1">
+                            <p class="text-xs font-bold text-lime">{{ challenge.progress.pctCalories }}% realizat</p>
+                            <div class="mt-1 h-1.5 overflow-hidden rounded-full bg-white/10">
+                                <div class="h-full rounded-full bg-lime transition-all duration-700" :style="{width: `${challenge.progress.pctCalories}%`}"></div>
+                            </div>
                         </div>
                     </div>
-                    <div>
+                    <div class="flex flex-col">
                         <p class="flex items-center gap-1 text-2xl font-extrabold leading-none">
                             <BeakerIcon class="size-4 text-aqua"/> {{ (challenge.targets.waterMl / 1000).toLocaleString('ro-RO') }} L
                         </p>
                         <p class="mt-1 text-[11px] text-white/45">apă/zi (medie reală: {{ (challenge.progress.avgWaterMl / 1000).toLocaleString('ro-RO', {maximumFractionDigits: 1}) }} L)</p>
-                        <p class="mt-1 text-xs font-bold text-aqua">{{ challenge.progress.pctWater }}% realizat</p>
-                        <div class="mt-1 h-1.5 overflow-hidden rounded-full bg-white/10">
-                            <div class="h-full rounded-full bg-aqua transition-all duration-700" :style="{width: `${challenge.progress.pctWater}%`}"></div>
+                        <div class="mt-auto pt-1">
+                            <p class="text-xs font-bold text-aqua">{{ challenge.progress.pctWater }}% realizat</p>
+                            <div class="mt-1 h-1.5 overflow-hidden rounded-full bg-white/10">
+                                <div class="h-full rounded-full bg-aqua transition-all duration-700" :style="{width: `${challenge.progress.pctWater}%`}"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -249,7 +253,7 @@ const chart = computed(() => {
                     <div>
                         <p class="text-lg font-extrabold">{{ challenge.targets.proteinG }} <span class="text-xs font-semibold text-white/50">g</span></p>
                         <p class="text-[11px] text-white/40">Proteine</p>
-                        <p class="mt-1 text-[11px] font-bold text-aqua">{{ challenge.progress.pctProtein }}%</p>
+                        <p class="mt-1 text-[11px] font-bold text-aqua">{{ Math.round(challenge.progress.avgProteinG) }} g <span class="font-semibold text-white/35">·</span> {{ challenge.progress.pctProtein }}%</p>
                         <div class="mt-1 h-1 overflow-hidden rounded-full bg-white/10">
                             <div class="h-full rounded-full bg-aqua transition-all duration-700" :style="{width: `${challenge.progress.pctProtein}%`}"></div>
                         </div>
@@ -257,7 +261,7 @@ const chart = computed(() => {
                     <div>
                         <p class="text-lg font-extrabold">{{ challenge.targets.carbsG }} <span class="text-xs font-semibold text-white/50">g</span></p>
                         <p class="text-[11px] text-white/40">Carbohidrați</p>
-                        <p class="mt-1 text-[11px] font-bold text-sun">{{ challenge.progress.pctCarbs }}%</p>
+                        <p class="mt-1 text-[11px] font-bold text-sun">{{ Math.round(challenge.progress.avgCarbsG) }} g <span class="font-semibold text-white/35">·</span> {{ challenge.progress.pctCarbs }}%</p>
                         <div class="mt-1 h-1 overflow-hidden rounded-full bg-white/10">
                             <div class="h-full rounded-full bg-sun transition-all duration-700" :style="{width: `${challenge.progress.pctCarbs}%`}"></div>
                         </div>
@@ -265,7 +269,7 @@ const chart = computed(() => {
                     <div>
                         <p class="text-lg font-extrabold">{{ challenge.targets.fatG }} <span class="text-xs font-semibold text-white/50">g</span></p>
                         <p class="text-[11px] text-white/40">Grăsimi</p>
-                        <p class="mt-1 text-[11px] font-bold text-rose">{{ challenge.progress.pctFat }}%</p>
+                        <p class="mt-1 text-[11px] font-bold text-rose">{{ Math.round(challenge.progress.avgFatG) }} g <span class="font-semibold text-white/35">·</span> {{ challenge.progress.pctFat }}%</p>
                         <div class="mt-1 h-1 overflow-hidden rounded-full bg-white/10">
                             <div class="h-full rounded-full bg-rose transition-all duration-700" :style="{width: `${challenge.progress.pctFat}%`}"></div>
                         </div>
