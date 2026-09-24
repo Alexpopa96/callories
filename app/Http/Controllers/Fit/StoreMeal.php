@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Fit;
 
 use App\Http\Controllers\Controller;
+use App\Services\Fit\BarcodeLookup;
 use App\Services\Fit\MealBuilder;
 use App\Services\Fit\PushSender;
 use App\Services\Fit\ReminderPlanner;
@@ -10,9 +11,11 @@ use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
+use function Illuminate\Support\defer;
+
 class StoreMeal extends Controller
 {
-    public function __invoke(Request $request, ReminderPlanner $planner, PushSender $sender): RedirectResponse
+    public function __invoke(Request $request, ReminderPlanner $planner, PushSender $sender, BarcodeLookup $barcodes): RedirectResponse
     {
         $data = $request->validate([
             'date' => ['required', 'date_format:Y-m-d', 'before_or_equal:today'],
@@ -30,13 +33,25 @@ class StoreMeal extends Controller
             ? (int) $user->meals()->where('eaten_on', $data['date'])->sum('calories')
             : null;
 
-        $user->meals()->create([
+        $meal = $user->meals()->create([
             ...$attributes,
             'eaten_on' => $data['date'],
             'photo_path' => $request->file('photo')?->store("meals/{$user->id}", 'public'),
             'confidence' => $data['confidence'] ?? null,
             'notes' => $data['notes'] ?? null,
         ]);
+
+        // a meal of scanned products without its own photo gets the first product's picture,
+        // downloaded after the response since the Open Food Facts image server can be slow
+        $imageUrl = collect($data['items'])->pluck('image_url')->filter()->first();
+
+        if (! $meal->photo_path && $imageUrl) {
+            defer(function () use ($meal, $imageUrl, $barcodes) {
+                if ($path = $barcodes->storeImage($imageUrl, "meals/{$meal->user_id}")) {
+                    $meal->update(['photo_path' => $path]);
+                }
+            });
+        }
 
         if ($previousTotal !== null) {
             $message = $planner->calorieLimitMessage($previousTotal, $previousTotal + (int) $attributes['calories'], (int) $user->calorie_goal);

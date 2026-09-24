@@ -37,7 +37,9 @@ const stepPieces = (item, index, delta) => setPieces(item, index, Math.max(1, (p
     <ul class="space-y-2">
         <li v-for="(item, index) in items" :key="index" class="rounded-2xl border border-white/5 bg-panel p-3.5">
             <div class="flex items-start justify-between gap-3">
-                <div class="min-w-0">
+                <img v-if="item.image_url" :src="item.image_url" alt="" loading="lazy"
+                     class="size-11 shrink-0 rounded-xl bg-white object-contain p-0.5"/>
+                <div class="min-w-0 flex-1">
                     <p class="truncate font-bold leading-tight">{{ item.name }}</p>
                     <p class="mt-0.5 text-[11px] text-white/45">
                         P {{ item.protein_g }} · C {{ item.carbs_g }} · G {{ item.fat_g }} · F {{ item.fiber_g }}

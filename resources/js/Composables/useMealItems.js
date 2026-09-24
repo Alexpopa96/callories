@@ -15,6 +15,8 @@ export function toEditable(item) {
         name: item.name,
         portion_grams: base.grams,
         ...Object.fromEntries(KEYS.map((key) => [key, base[key]])),
+        image_url: item.image_url ?? null,
+        barcode: item.barcode ?? null,
         _base: base,
     };
 }
@@ -47,6 +49,8 @@ export function toPayload(item) {
         carbs_g: item.carbs_g,
         fat_g: item.fat_g,
         fiber_g: item.fiber_g,
+        image_url: item.image_url ?? null,
+        barcode: item.barcode ?? null,
     };
 }
 
@@ -69,7 +73,15 @@ export function useMealItems(initial = []) {
         items,
         totals,
         set: (list) => (items.value = list.map(toEditable)),
-        setAnalyzed: (list) => (items.value = list.map(fromAnalysis)),
+        setAnalyzed: (list) => {
+            // keep product pictures across an AI refinement, which only returns names and values
+            const products = new Map(items.value.filter((item) => item.barcode || item.image_url).map((item) => [item.name, item]));
+            items.value = list.map((item) => fromAnalysis({
+                ...item,
+                image_url: item.image_url ?? products.get(item.name)?.image_url,
+                barcode: item.barcode ?? products.get(item.name)?.barcode,
+            }));
+        },
         add: (item) => {
             const editable = toEditable(item);
             items.value.push(editable);

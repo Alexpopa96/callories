@@ -22,6 +22,8 @@ class MealBuilder
             'items.*.carbs_g' => ['required', 'numeric', 'min:0', 'max:1000'],
             'items.*.fat_g' => ['required', 'numeric', 'min:0', 'max:500'],
             'items.*.fiber_g' => ['required', 'numeric', 'min:0', 'max:200'],
+            'items.*.image_url' => ['nullable', 'string', 'max:500'],
+            'items.*.barcode' => ['nullable', 'string', 'regex:/^\d{8,14}$/'],
         ];
     }
 
@@ -41,6 +43,7 @@ class MealBuilder
             'carbs_g' => round((float) $item['carbs_g'], 1),
             'fat_g' => round((float) $item['fat_g'], 1),
             'fiber_g' => round((float) $item['fiber_g'], 1),
+            ...(! empty($item['barcode']) ? ['barcode' => $item['barcode']] : []),
         ]);
 
         return [
