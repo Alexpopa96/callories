@@ -19,7 +19,7 @@ defineProps({
                     <div class="flex size-12 items-center justify-center rounded-2xl bg-gradient-to-br from-lime to-aqua text-ink shadow-[0_10px_30px_-8px_rgba(184,243,74,0.6)]">
                         <BoltIcon class="size-7"/>
                     </div>
-                    <span class="text-lg font-extrabold tracking-tight">Calorii</span>
+                    <span class="text-lg font-extrabold tracking-tight">Kalo</span>
                 </div>
 
                 <h1 class="mt-10 text-4xl font-extrabold leading-tight tracking-tight">{{ title }}</h1>

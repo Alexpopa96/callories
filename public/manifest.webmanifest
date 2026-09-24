@@ -1,6 +1,6 @@
 {
-    "name": "Calorii",
-    "short_name": "Calorii",
+    "name": "Kalo",
+    "short_name": "Kalo",
     "description": "Calorii, pași și apă, zi de zi.",
     "start_url": "/today",
     "scope": "/",

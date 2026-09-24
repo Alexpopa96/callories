@@ -10,7 +10,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="{{ config('app.name') }}">
 
-    <title inertia>{{ config('app.name', 'Calorii') }}</title>
+    <title inertia>{{ config('app.name', 'Kalo') }}</title>
 
     <link rel="manifest" href="/manifest.webmanifest">
     <link rel="icon" type="image/svg+xml" href="/assets/fit/icon.svg">

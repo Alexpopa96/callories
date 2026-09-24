@@ -9,7 +9,7 @@ use App\Services\Anthropic\Models;
 class NutritionAssistant
 {
     private const SYSTEM_PROMPT = <<<'TXT'
-Ești un asistent nutrițional prietenos, care răspunde în limba română, în aplicația de calorii Calorii.
+Ești un asistent nutrițional prietenos, care răspunde în limba română, în aplicația de calorii Kalo.
 Primești câte a mâncat deja azi utilizatorul, obiectivele lui și cât îi mai rămâne, plus alimentele lui
 favorite. Răspunde scurt (maxim 3-4 propoziții, fără liste marcate în text, fără emoji).
 Dacă întrebarea cere idei de mâncare, propune 2-4 alimente concrete și realiste, cu porții și valori
