@@ -38,6 +38,7 @@ const stepPieces = (item, index, delta) => setPieces(item, index, Math.max(1, (p
 const MAX_PHOTO_SIDE = 800;
 const photoItem = ref(null);
 const photoInput = ref(null);
+const cameraInput = ref(null);
 const photoUploading = ref(false);
 const photoError = ref(null);
 
@@ -176,6 +177,7 @@ function removePhoto() {
         </li>
     </ul>
 
+    <input ref="cameraInput" type="file" accept="image/*" capture="environment" class="hidden" @change="uploadPhoto"/>
     <input ref="photoInput" type="file" accept="image/jpeg,image/png,image/webp,image/gif" class="hidden" @change="uploadPhoto"/>
     <BottomSheet :open="photoItem !== null" :title="photoItem?.name ?? ''" @close="photoItem = null">
         <img v-if="photoItem?.image_url" :src="photoItem.image_url" alt=""
@@ -183,9 +185,14 @@ function removePhoto() {
         <div class="space-y-2">
             <button type="button" :disabled="photoUploading"
                     class="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-lime text-base font-extrabold text-ink active:scale-[0.98] disabled:opacity-50"
+                    @click="cameraInput.click()">
+                <CameraIcon class="size-5"/>
+                {{ photoUploading ? 'Se încarcă…' : 'Fă o poză' }}
+            </button>
+            <button type="button" :disabled="photoUploading"
+                    class="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-white/5 text-base font-bold text-white active:scale-[0.98] disabled:opacity-50"
                     @click="photoInput.click()">
-                <PhotoIcon class="size-5"/>
-                {{ photoUploading ? 'Se încarcă…' : (photoItem?.image_url ? 'Încarcă altă poză' : 'Încarcă o poză') }}
+                <PhotoIcon class="size-5"/> Alege din galerie
             </button>
             <button v-if="photoItem?.image_url" type="button" :disabled="photoUploading"
                     class="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-white/5 text-base font-bold text-rose active:scale-[0.98] disabled:opacity-50"
