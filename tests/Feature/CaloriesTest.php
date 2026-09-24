@@ -262,6 +262,30 @@ class CaloriesTest extends TestCase
         $this->assertSame(200, $user->dailyLogs()->where('date', $yesterday)->sole()->exercise_calories);
     }
 
+    public function test_sleep_is_set_per_day_and_shows_on_home_and_history(): void
+    {
+        $user = $this->user();
+        $today = CarbonImmutable::today()->toDateString();
+        $yesterday = CarbonImmutable::yesterday()->toDateString();
+
+        $this->actingAs($user)->put('/log/sleep', ['date' => $today, 'minutes' => 390])->assertRedirect();
+        $this->actingAs($user)->put('/log/sleep', ['date' => $today, 'minutes' => 450]);
+        $this->actingAs($user)->put('/log/sleep', ['date' => $yesterday, 'minutes' => 360]);
+        $this->assertSame(450, $user->dailyLogs()->where('date', $today)->sole()->sleep_minutes);
+
+        $this->actingAs($user)->put('/log/sleep', ['date' => $today, 'minutes' => 1500])->assertSessionHasErrors('minutes');
+        $this->actingAs($user)->put('/log/sleep', ['date' => CarbonImmutable::tomorrow()->toDateString(), 'minutes' => 400])->assertSessionHasErrors('date');
+
+        $this->actingAs($user)->get('/today')
+            ->assertInertia(fn ($page) => $page->where('sleepMinutes', 450));
+
+        $this->actingAs($user)->get('/history')
+            ->assertInertia(fn ($page) => $page
+                ->where('averages.sleepMinutes', 405)
+                ->where('hits.sleepMinutes', 1)
+                ->where('goals.sleepMinutes', 420));
+    }
+
     public function test_exercise_calories_widen_the_calorie_budget_shown_for_the_day(): void
     {
         $user = $this->user(['calorie_goal' => 2000]);

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Fit;
 
 use App\Http\Controllers\Controller;
 use App\Services\Fit\AssistantException;
+use App\Services\Fit\DayStats;
 use App\Services\Fit\WorkoutCoach;
 use App\Services\Fit\WorkoutQuota;
 use Illuminate\Http\JsonResponse;
@@ -33,7 +34,10 @@ class AskWorkoutCoach extends Controller
 
         $quota->consume($user);
 
+        $sleepMinutes = (int) $user->dailyLogs()->where('date', DayStats::resolveDate(null)->toDateString())->value('sleep_minutes');
+
         $context = [
+            'somn_azi_noapte_ore' => $sleepMinutes > 0 ? round($sleepMinutes / 60, 1) : null,
             'antrenamente_recente' => $user->workouts()->orderByDesc('date')->limit(5)->get(['date', 'title'])
                 ->map(fn ($workout) => ['data' => $workout->date->toDateString(), 'titlu' => $workout->title])
                 ->toArray(),

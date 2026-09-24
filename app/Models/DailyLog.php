@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class DailyLog extends Model
 {
-    protected $fillable = ['user_id', 'date', 'steps', 'water_ml', 'exercise_calories'];
+    protected $fillable = ['user_id', 'date', 'steps', 'water_ml', 'exercise_calories', 'sleep_minutes'];
 
     protected function casts(): array
     {
@@ -15,6 +15,7 @@ class DailyLog extends Model
             'steps' => 'integer',
             'water_ml' => 'integer',
             'exercise_calories' => 'integer',
+            'sleep_minutes' => 'integer',
         ];
     }
 

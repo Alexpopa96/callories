@@ -15,6 +15,7 @@ const metrics = {
     calories: {label: 'Calorii', unit: 'kcal', goal: () => props.goals.calories, text: 'text-lime', bar: 'bg-lime', soft: 'bg-lime/15'},
     steps: {label: 'Pași', unit: '', goal: () => props.goals.steps, text: 'text-sun', bar: 'bg-sun', soft: 'bg-sun/15'},
     waterMl: {label: 'Apă', unit: 'L', goal: () => props.goals.waterMl, text: 'text-aqua', bar: 'bg-aqua', soft: 'bg-aqua/15'},
+    sleepMinutes: {label: 'Somn', unit: 'h', goal: () => props.goals.sleepMinutes, text: 'text-dusk', bar: 'bg-dusk', soft: 'bg-dusk/15'},
     protein: {label: 'Proteine', unit: 'g', goal: () => props.goals.proteinG ?? 0, text: 'text-rose', bar: 'bg-rose', soft: 'bg-rose/15'},
 };
 
@@ -23,7 +24,7 @@ const dayMetrics = {calories: metrics.calories, steps: metrics.steps, waterMl: m
 
 const range = ref(7);
 
-const hasData = (day) => day.calories > 0 || day.steps > 0 || day.waterMl > 0 || day.meals > 0;
+const hasData = (day) => day.calories > 0 || day.steps > 0 || day.waterMl > 0 || day.sleepMinutes > 0 || day.meals > 0;
 const showEmpty = ref(false);
 const listedDays = computed(() => (showEmpty.value ? props.days : props.days.filter(hasData)));
 const emptyCount = computed(() => props.days.filter((day) => !hasData(day)).length);
@@ -37,12 +38,14 @@ const scaleMax = computed(() => Math.max(metric.value.goal() * 1.25, 1, ...week.
 
 function format(key, value) {
     if (key === 'waterMl') return (value / 1000).toLocaleString('ro-RO', {maximumFractionDigits: 2});
+    if (key === 'sleepMinutes') return (value / 60).toLocaleString('ro-RO', {maximumFractionDigits: 1});
     return Math.round(value).toLocaleString('ro-RO');
 }
 
 function short(key, value) {
     if (value === 0 || range.value > 7) return '';
     if (key === 'waterMl') return (value / 1000).toLocaleString('ro-RO', {maximumFractionDigits: 1});
+    if (key === 'sleepMinutes') return (value / 60).toLocaleString('ro-RO', {maximumFractionDigits: 1});
     if (key === 'steps' && value >= 1000) return `${(value / 1000).toLocaleString('ro-RO', {maximumFractionDigits: 1})}k`;
     return Math.round(value).toString();
 }
@@ -64,7 +67,7 @@ const pct = (value, goal) => Math.min(100, Math.round((value / goal) * 100));
             </button>
         </div>
 
-        <div class="mt-3 grid grid-cols-3 gap-3">
+        <div class="mt-3 grid grid-cols-2 gap-3">
             <div class="rounded-2xl border border-white/10 bg-panel p-3">
                 <p class="text-[11px] font-semibold uppercase tracking-wider text-white/45">Calorii</p>
                 <p class="mt-1.5 text-xl font-extrabold leading-none text-lime">{{ format('calories', shownAverages.calories) }}</p>
@@ -80,12 +83,17 @@ const pct = (value, goal) => Math.min(100, Math.round((value / goal) * 100));
                 <p class="mt-1.5 text-xl font-extrabold leading-none text-aqua">{{ format('waterMl', shownAverages.waterMl) }}</p>
                 <p class="mt-1 text-[11px] text-white/45">L / zi</p>
             </div>
+            <div class="rounded-2xl border border-white/10 bg-panel p-3">
+                <p class="text-[11px] font-semibold uppercase tracking-wider text-white/45">Somn</p>
+                <p class="mt-1.5 text-xl font-extrabold leading-none text-dusk">{{ format('sleepMinutes', shownAverages.sleepMinutes) }}</p>
+                <p class="mt-1 text-[11px] text-white/45">ore / noapte</p>
+            </div>
         </div>
         <p class="mt-2 text-xs text-white/35">Media ultimelor {{ range }} zile, doar zilele cu date.</p>
 
         <section class="mt-4 rounded-[1.5rem] border border-white/10 bg-panel p-4">
             <p class="text-xs font-semibold uppercase tracking-wider text-white/50">Obiective atinse în ultimele 30 de zile</p>
-            <div class="mt-3 grid grid-cols-3 gap-3 text-center">
+            <div class="mt-3 grid grid-cols-4 gap-3 text-center">
                 <div>
                     <p class="text-2xl font-extrabold leading-none text-lime">{{ hits.calories }}</p>
                     <p class="mt-1 text-[11px] text-white/45">calorii (±10%)</p>
@@ -97,6 +105,10 @@ const pct = (value, goal) => Math.min(100, Math.round((value / goal) * 100));
                 <div>
                     <p class="text-2xl font-extrabold leading-none text-aqua">{{ hits.waterMl }}</p>
                     <p class="mt-1 text-[11px] text-white/45">apă</p>
+                </div>
+                <div>
+                    <p class="text-2xl font-extrabold leading-none text-dusk">{{ hits.sleepMinutes }}</p>
+                    <p class="mt-1 text-[11px] text-white/45">somn 7h+</p>
                 </div>
             </div>
         </section>

@@ -17,13 +17,14 @@ nutriționale estimate, care se încadrează în ce-i mai rămâne azi din calor
 macronutrientul întrebat. Preferă alimentele lui favorite când se potrivesc.
 Nu presupune ce a mâncat în afara datelor primite și nu da sfaturi medicale; pentru probleme de sănătate,
 îndrumă spre un medic sau un nutriționist.
+Dacă ai primit câte ore a dormit azi-noapte și a dormit sub 6 ore, poți menționa scurt că foamea mai mare e
+normală după o noapte scurtă și poți prefera alimente sățioase (proteine, fibre), dar doar când e relevant.
 TXT;
 
     public function __construct(
         private readonly Client $client,
         private readonly string $model,
-    ) {
-    }
+    ) {}
 
     /**
      * @param  array<string, mixed>  $context  today's totals, goals and favorites, given to the model as grounding

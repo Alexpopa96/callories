@@ -31,6 +31,7 @@ export default {
                 'sun': '#FF9F43',
                 'aqua': '#38BDF8',
                 'rose': '#FF5D8F',
+                'dusk': '#A78BFA',
             },
         }
     },

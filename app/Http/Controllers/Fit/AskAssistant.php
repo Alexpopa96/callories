@@ -37,9 +37,11 @@ class AskAssistant extends Controller
         $today = DayStats::resolveDate(null)->toDateString();
         $meals = $user->meals()->where('eaten_on', $today)->get();
         $goals = $user->goals();
+        $sleepMinutes = (int) $user->dailyLogs()->where('date', $today)->value('sleep_minutes');
 
         $context = [
             'obiective_zilnice' => $goals,
+            'somn_azi_noapte_ore' => $sleepMinutes > 0 ? round($sleepMinutes / 60, 1) : null,
             'mancat_azi' => [
                 'calorii' => (int) $meals->sum('calories'),
                 'proteine_g' => round($meals->sum('protein_g'), 1),

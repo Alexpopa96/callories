@@ -5,13 +5,14 @@ namespace Tests\Feature;
 use App\Models\CustomBarcode;
 use App\Models\User;
 use App\Services\Calories\FoodPhotoAnalyzer;
-use App\Services\Fit\GoalCalculator;
 use App\Services\Fit\AssistantException;
+use App\Services\Fit\GoalCalculator;
 use App\Services\Fit\NutritionAssistant;
 use App\Services\Fit\PushSender;
 use App\Services\Fit\ReminderPlanner;
 use App\Services\Fit\WorkoutCoach;
 use Carbon\CarbonImmutable;
+use Carbon\CarbonInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Cache;
@@ -351,7 +352,7 @@ class FitFeaturesTest extends TestCase
         $user->dailyLogs()->create(['date' => $today->toDateString(), 'steps' => 12000, 'water_ml' => 2600]);
 
         $this->actingAs($user)->get('/history')->assertInertia(fn ($page) => $page
-            ->where('hits', ['calories' => 1, 'steps' => 1, 'waterMl' => 1])
+            ->where('hits', ['calories' => 1, 'steps' => 1, 'waterMl' => 1, 'sleepMinutes' => 0])
             ->where('averages.calories', 2000)
             ->where('averages30.calories', 2750)
             ->where('days.0.protein', 100));
@@ -539,7 +540,7 @@ class FitFeaturesTest extends TestCase
     {
         $user = $this->user();
         $today = CarbonImmutable::today();
-        $monday = $today->startOfWeek(\Carbon\CarbonInterface::MONDAY);
+        $monday = $today->startOfWeek(CarbonInterface::MONDAY);
 
         $this->actingAs($user)->get('/today')->assertInertia(fn ($page) => $page
             ->has('strip', 7)
@@ -561,7 +562,7 @@ class FitFeaturesTest extends TestCase
         $user = $this->user();
         $today = CarbonImmutable::today();
         $old = $today->subWeeks(3);
-        $monday = $old->startOfWeek(\Carbon\CarbonInterface::MONDAY);
+        $monday = $old->startOfWeek(CarbonInterface::MONDAY);
 
         $this->actingAs($user)->get('/today?date='.$old->toDateString())->assertInertia(fn ($page) => $page
             ->where('strip.0.date', $monday->toDateString())
@@ -571,7 +572,7 @@ class FitFeaturesTest extends TestCase
             ->where('week.next', $old->addWeek()->toDateString()));
 
         // moving forward never goes past today
-        $lastWeek = $today->subWeek()->startOfWeek(\Carbon\CarbonInterface::MONDAY)->addDays(6);
+        $lastWeek = $today->subWeek()->startOfWeek(CarbonInterface::MONDAY)->addDays(6);
         $this->actingAs($user)->get('/today?date='.$lastWeek->toDateString())->assertInertia(fn ($page) => $page
             ->where('week.next', $lastWeek->addWeek()->min($today)->toDateString()));
     }

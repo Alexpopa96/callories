@@ -42,6 +42,7 @@ use App\Http\Controllers\Fit\UpdateExercise;
 use App\Http\Controllers\Fit\UpdateGoals;
 use App\Http\Controllers\Fit\UpdateMeal;
 use App\Http\Controllers\Fit\UpdateReminders;
+use App\Http\Controllers\Fit\UpdateSleep;
 use App\Http\Controllers\Fit\UpdateSteps;
 use App\Http\Controllers\Fit\UpdateWater;
 use App\Http\Controllers\Fit\Weight;
@@ -80,6 +81,7 @@ Route::middleware(['auth'])->group(function () {
     Route::put('log/water', UpdateWater::class)->name('fit.water');
     Route::put('log/steps', UpdateSteps::class)->name('fit.steps');
     Route::put('log/exercise', UpdateExercise::class)->name('fit.exercise');
+    Route::put('log/sleep', UpdateSleep::class)->name('fit.sleep');
 
     Route::get('weight', Weight::class)->name('fit.weight');
     Route::put('log/weight', StoreWeight::class)->name('fit.weight.store');

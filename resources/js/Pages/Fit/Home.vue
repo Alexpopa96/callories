@@ -5,7 +5,7 @@ import FitLayout from '@/Layouts/FitLayout.vue';
 import ProgressRing from '@/Components/Fit/ProgressRing.vue';
 import BottomSheet from '@/Components/Fit/BottomSheet.vue';
 import ChallengeCard from '@/Components/Fit/ChallengeCard.vue';
-import {BeakerIcon, BoltIcon, CameraIcon, ChevronLeftIcon, ChevronRightIcon, FireIcon, PencilSquareIcon, PlusIcon, ScaleIcon, SparklesIcon, TrashIcon} from '@heroicons/vue/24/outline/index.js';
+import {BeakerIcon, BoltIcon, CameraIcon, ChevronLeftIcon, ChevronRightIcon, FireIcon, MoonIcon, PencilSquareIcon, PlusIcon, ScaleIcon, SparklesIcon, TrashIcon} from '@heroicons/vue/24/outline/index.js';
 
 const props = defineProps({
     date: String,
@@ -18,6 +18,7 @@ const props = defineProps({
     steps: Number,
     waterMl: Number,
     exerciseCalories: {type: Number, default: 0},
+    sleepMinutes: {type: Number, default: 0},
     weightKg: {type: Number, default: null},
     challenge: {type: Object, default: null},
     meals: Array,
@@ -103,6 +104,27 @@ function saveExercise() {
     router.put('/log/exercise', {date: props.date, calories}, {
         preserveScroll: true,
         onSuccess: () => (exerciseSheet.value = false),
+    });
+}
+
+const sleepSheet = ref(false);
+const sleepInput = ref(0);
+
+const hoursLabel = (minutes) => `${Math.floor(minutes / 60)} h${minutes % 60 ? ` ${minutes % 60} min` : ''}`;
+
+function openSleep() {
+    sleepInput.value = props.sleepMinutes || 7 * 60;
+    sleepSheet.value = true;
+}
+
+function bumpSleep(amount) {
+    sleepInput.value = Math.max(0, Math.min(24 * 60, sleepInput.value + amount));
+}
+
+function saveSleep(minutes = sleepInput.value) {
+    router.put('/log/sleep', {date: props.date, minutes}, {
+        preserveScroll: true,
+        onSuccess: () => (sleepSheet.value = false),
     });
 }
 
@@ -228,6 +250,19 @@ function removeMeal(meal) {
             <ChevronRightIcon class="size-5 text-white/35"/>
         </button>
 
+        <button type="button"
+                class="mt-4 flex w-full items-center gap-3 rounded-[1.5rem] border border-white/10 bg-panel p-4 text-left active:scale-[0.99]"
+                @click="openSleep">
+            <span class="flex size-10 items-center justify-center rounded-full bg-dusk/15 text-dusk"><MoonIcon class="size-5"/></span>
+            <span class="min-w-0 flex-1">
+                <span class="block text-xs font-semibold uppercase tracking-wider text-white/50">Somn</span>
+                <span class="block text-lg font-extrabold leading-tight">
+                    {{ sleepMinutes > 0 ? hoursLabel(sleepMinutes) : 'Cât ai dormit azi-noapte?' }}
+                </span>
+            </span>
+            <ChevronRightIcon class="size-5 text-white/35"/>
+        </button>
+
         <Link href="/weight" class="mt-4 flex items-center gap-3 rounded-[1.5rem] border border-white/10 bg-panel p-4 active:scale-[0.99]">
             <span class="flex size-10 items-center justify-center rounded-full bg-rose/15 text-rose"><ScaleIcon class="size-5"/></span>
             <span class="min-w-0 flex-1">
@@ -276,17 +311,19 @@ function removeMeal(meal) {
             <ul v-else class="space-y-3">
                 <li v-for="meal in meals" :key="meal.id"
                     class="flex items-center gap-3 rounded-[1.5rem] border border-white/5 bg-panel p-3">
-                    <div class="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-panel2 text-white/30">
-                        <img v-if="meal.photoUrl" :src="meal.photoUrl" :alt="meal.title" class="size-full object-cover"/>
-                        <FireIcon v-else class="size-7"/>
-                    </div>
-                    <div class="min-w-0 flex-1">
-                        <p class="line-clamp-2 font-bold leading-tight">{{ meal.title }}</p>
-                        <p class="mt-0.5 text-xs text-white/45">
-                            <template v-if="isToday">{{ meal.time }} · </template>P {{ meal.protein }} · C {{ meal.carbs }} · G {{ meal.fat }} · F {{ meal.fiber }}
-                        </p>
-                        <p class="mt-1 text-sm font-extrabold text-lime">{{ fmt(meal.calories) }} kcal</p>
-                    </div>
+                    <Link :href="`/meals/${meal.id}/edit`" class="flex min-w-0 flex-1 items-center gap-3 transition active:scale-[0.99]">
+                        <div class="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-panel2 text-white/30">
+                            <img v-if="meal.photoUrl" :src="meal.photoUrl" :alt="meal.title" class="size-full object-cover"/>
+                            <FireIcon v-else class="size-7"/>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <p class="line-clamp-2 font-bold leading-tight">{{ meal.title }}</p>
+                            <p class="mt-0.5 text-xs text-white/45">
+                                <template v-if="isToday">{{ meal.time }} · </template>P {{ meal.protein }} · C {{ meal.carbs }} · G {{ meal.fat }} · F {{ meal.fiber }}
+                            </p>
+                            <p class="mt-1 text-sm font-extrabold text-lime">{{ fmt(meal.calories) }} kcal</p>
+                        </div>
+                    </Link>
                     <div class="flex shrink-0 flex-col">
                         <Link :href="`/meals/${meal.id}/edit`" class="flex size-11 items-center justify-center rounded-full text-white/35 transition active:scale-90 active:text-lime"
                               aria-label="Editează masa">
@@ -355,6 +392,36 @@ function removeMeal(meal) {
             <button type="button" class="mt-4 h-14 w-full rounded-2xl bg-sun text-base font-extrabold text-ink active:scale-[0.98]"
                     @click="saveExercise">
                 Salvează
+            </button>
+        </BottomSheet>
+
+        <BottomSheet :open="sleepSheet" title="Cât ai dormit?" @close="sleepSheet = false">
+            <p class="mb-3 text-xs text-white/45">Noaptea dinainte de {{ isToday ? 'azi' : dateLabel.toLowerCase() }}.</p>
+            <div class="flex items-center justify-between gap-3">
+                <button type="button" aria-label="Scade 30 de minute" :disabled="sleepInput === 0"
+                        class="h-14 w-20 rounded-2xl bg-dusk/15 text-lg font-extrabold text-dusk active:scale-95 disabled:opacity-40"
+                        @click="bumpSleep(-30)">−30</button>
+                <p class="text-3xl font-extrabold tabular-nums">{{ hoursLabel(sleepInput) }}</p>
+                <button type="button" aria-label="Adaugă 30 de minute" :disabled="sleepInput >= 24 * 60"
+                        class="h-14 w-20 rounded-2xl bg-dusk/15 text-lg font-extrabold text-dusk active:scale-95 disabled:opacity-40"
+                        @click="bumpSleep(30)">+30</button>
+            </div>
+            <div class="mt-3 grid grid-cols-4 gap-2">
+                <button v-for="hours in [5, 6, 7, 8]" :key="hours" type="button"
+                        class="h-12 rounded-2xl text-sm font-extrabold active:scale-95"
+                        :class="sleepInput === hours * 60 ? 'bg-dusk text-ink' : 'bg-white/5 text-white/70'"
+                        @click="sleepInput = hours * 60">
+                    {{ hours }} h
+                </button>
+            </div>
+            <button type="button" class="mt-4 h-14 w-full rounded-2xl bg-dusk text-base font-extrabold text-ink active:scale-[0.98]"
+                    @click="saveSleep()">
+                Salvează
+            </button>
+            <button v-if="sleepMinutes > 0" type="button"
+                    class="mt-3 h-12 w-full rounded-2xl bg-white/5 text-sm font-semibold text-white/70"
+                    @click="saveSleep(0)">
+                Șterge
             </button>
         </BottomSheet>
     </FitLayout>

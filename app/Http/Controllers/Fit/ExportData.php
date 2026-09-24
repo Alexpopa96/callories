@@ -38,6 +38,8 @@ class ExportData extends Controller
                 'date' => substr($log->date, 0, 10),
                 'steps' => $log->steps,
                 'water_ml' => $log->water_ml,
+                'exercise_calories' => $log->exercise_calories,
+                'sleep_minutes' => $log->sleep_minutes,
             ])->all(),
             'weight_logs' => $user->weightLogs()->orderBy('date')->get()->map(fn ($log) => [
                 'date' => substr($log->date, 0, 10),

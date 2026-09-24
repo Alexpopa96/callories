@@ -4,6 +4,7 @@ import {Head, useForm} from '@inertiajs/vue3';
 import FitLayout from '@/Layouts/FitLayout.vue';
 import MealItemsEditor from '@/Components/Fit/MealItemsEditor.vue';
 import MealRemark from '@/Components/Fit/MealRemark.vue';
+import PhotoViewer from '@/Components/Fit/PhotoViewer.vue';
 import {useMealItems} from '@/Composables/useMealItems.js';
 
 const props = defineProps({
@@ -14,6 +15,7 @@ const props = defineProps({
 const list = useMealItems(props.meal.items);
 const title = ref(props.meal.title);
 const notes = ref(props.meal.notes);
+const photoOpen = ref(false);
 const form = useForm({title: props.meal.title, items: [], notes: null});
 
 function onRefined(data) {
@@ -32,7 +34,12 @@ function save() {
 <template>
     <Head title="Editează masa"/>
     <FitLayout title="Editează masa" :subtitle="dateLabel" :back="`/today?date=${meal.date}`" hide-nav>
-        <img v-if="meal.photoUrl" :src="meal.photoUrl" :alt="meal.title" class="mb-4 max-h-56 w-full rounded-[2rem] border border-white/10 object-cover"/>
+        <template v-if="meal.photoUrl">
+            <button type="button" aria-label="Deschide poza" class="mb-4 block w-full active:scale-[0.99]" @click="photoOpen = true">
+                <img :src="meal.photoUrl" :alt="meal.title" class="max-h-56 w-full rounded-[2rem] border border-white/10 object-cover"/>
+            </button>
+            <PhotoViewer :open="photoOpen" :src="meal.photoUrl" :alt="meal.title" @close="photoOpen = false"/>
+        </template>
 
         <label class="block">
             <span class="text-xs font-semibold uppercase tracking-wider text-white/50">Nume</span>

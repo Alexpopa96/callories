@@ -17,13 +17,14 @@ exerciții încă. Când ai destule informații, propune un antrenament complet:
 fiecare. Ține cont de antrenamentele recente primite ca să eviți aceleași grupe musculare zile la rând.
 Răspunde scurt (maxim 3-4 propoziții în afara listei de exerciții), fără emoji. Nu da sfaturi medicale;
 pentru dureri articulare sau probleme de sănătate, îndrumă spre un medic sau un kinetoterapeut.
+Dacă ai primit câte ore a dormit azi-noapte și a dormit sub 6 ore, propune un volum sau o intensitate
+ceva mai mici și spune scurt de ce.
 TXT;
 
     public function __construct(
         private readonly Client $client,
         private readonly string $model,
-    ) {
-    }
+    ) {}
 
     /**
      * @param  array<string, mixed>  $context  recent workout history, given to the model as grounding
@@ -35,7 +36,7 @@ TXT;
      */
     public function ask(array $context, array $history, string $message): array
     {
-        $system = self::SYSTEM_PROMPT."\n\nAntrenamentele recente ale utilizatorului (JSON): ".json_encode($context, JSON_UNESCAPED_UNICODE);
+        $system = self::SYSTEM_PROMPT."\n\nDatele utilizatorului (antrenamente recente, somn) (JSON): ".json_encode($context, JSON_UNESCAPED_UNICODE);
 
         $messages = [
             ...array_map(fn (array $turn) => ['role' => $turn['role'], 'content' => $turn['content']], $history),

@@ -36,7 +36,7 @@ class Home extends Controller
                 'date' => $day['date'],
                 'weekday' => CarbonImmutable::parse($day['date'])->locale('ro')->isoFormat('ddd'),
                 'day' => CarbonImmutable::parse($day['date'])->day,
-                'hasData' => $day['meals'] > 0 || $day['steps'] > 0 || $day['water_ml'] > 0 || $day['exercise_calories'] > 0,
+                'hasData' => $day['meals'] > 0 || $day['steps'] > 0 || $day['water_ml'] > 0 || $day['exercise_calories'] > 0 || $day['sleep_minutes'] > 0,
                 'future' => $day['date'] > $today->toDateString(),
             ])
             ->values();
@@ -83,6 +83,7 @@ class Home extends Controller
             'steps' => $log?->steps ?? 0,
             'waterMl' => $log?->water_ml ?? 0,
             'exerciseCalories' => $log?->exercise_calories ?? 0,
+            'sleepMinutes' => $log?->sleep_minutes ?? 0,
             'meals' => $meals->map(fn (Meal $meal) => [
                 'id' => $meal->id,
                 'title' => $meal->title,
