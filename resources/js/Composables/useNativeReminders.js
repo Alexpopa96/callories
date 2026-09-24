@@ -27,7 +27,7 @@ export async function syncNativeReminders(enabled) {
 
     const permission = await LocalNotifications.requestPermissions();
     if (permission.display !== 'granted') {
-        return {ok: false, reason: 'Notificările sunt blocate. Permite-le din Setări → Kalo → Notificări.'};
+        return {ok: false, reason: 'Notificările sunt blocate. Permite-le din Setări → Kalo Mind → Notificări.'};
     }
 
     await LocalNotifications.schedule({

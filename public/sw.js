@@ -4,10 +4,10 @@ self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim(
 self.addEventListener('push', (event) => {
     const data = event.data ? event.data.json() : {};
 
-    event.waitUntil(self.registration.showNotification(data.title || 'Kalo', {
+    event.waitUntil(self.registration.showNotification(data.title || 'Kalo Mind', {
         body: data.body || '',
-        icon: '/assets/fit/icon-192.png',
-        badge: '/assets/fit/icon-192.png',
+        icon: '/images/kalo-mind-icon-192.png',
+        badge: '/images/kalo-mind-icon-192.png',
         data: {url: data.url || '/today'},
     }));
 });

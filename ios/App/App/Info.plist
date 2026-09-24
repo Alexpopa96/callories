@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-        <string>Kalo</string>
+        <string>Kalo Mind</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -25,9 +25,9 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>Kalo folosește camera ca să fotografiezi mesele și să scanezi coduri de bare.</string>
+	<string>Kalo Mind folosește camera ca să fotografiezi mesele și să scanezi coduri de bare.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Kalo are nevoie de acces la poze ca să alegi o fotografie cu masa ta.</string>
+	<string>Kalo Mind are nevoie de acces la poze ca să alegi o fotografie cu masa ta.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

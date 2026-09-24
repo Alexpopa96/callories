@@ -61,7 +61,7 @@ class BarcodeLookup
     private function fromOpenFoodFacts(string $code): ?array
     {
         $response = Http::timeout(8)
-            ->withUserAgent('Kalo/1.0')
+            ->withUserAgent('KaloMind/1.0')
             ->get("https://world.openfoodfacts.org/api/v2/product/{$code}.json", [
                 'fields' => 'product_name,brands,nutriments,serving_quantity',
             ]);

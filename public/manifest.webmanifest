@@ -1,6 +1,6 @@
 {
-    "name": "Kalo",
-    "short_name": "Kalo",
+    "name": "Kalo Mind",
+    "short_name": "Kalo Mind",
     "description": "Calorii, pași și apă, zi de zi.",
     "start_url": "/today",
     "scope": "/",
@@ -9,8 +9,29 @@
     "background_color": "#0A0E1A",
     "theme_color": "#0A0E1A",
     "icons": [
-        {"src": "/assets/fit/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
-        {"src": "/assets/fit/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
-        {"src": "/assets/fit/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any"}
+        {
+            "src": "/images/kalo-mind-icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/images/kalo-mind-icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/images/kalo-mind-icon.svg",
+            "sizes": "any",
+            "type": "image/svg+xml",
+            "purpose": "any"
+        },
+        {
+            "src": "/images/kalo-mind-icon-1024.png",
+            "sizes": "1024x1024",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
     ]
 }

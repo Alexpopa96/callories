@@ -10,11 +10,11 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="{{ config('app.name') }}">
 
-    <title inertia>{{ config('app.name', 'Kalo') }}</title>
+    <title inertia>{{ config('app.name', 'Kalo Mind') }}</title>
 
     <link rel="manifest" href="/manifest.webmanifest">
-    <link rel="icon" type="image/svg+xml" href="/assets/fit/icon.svg">
-    <link rel="apple-touch-icon" href="/assets/fit/icon-180.png">
+    <link rel="icon" type="image/svg+xml" href="/images/kalo-mind-icon.svg">
+    <link rel="apple-touch-icon" href="/images/kalo-mind-icon-180.png">
 
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600,700,800&display=swap" rel="stylesheet"/>

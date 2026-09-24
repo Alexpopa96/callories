@@ -1,6 +1,6 @@
 {
     "appId": "com.alexpopa.calorii",
-    "appName": "Kalo",
+    "appName": "Kalo Mind",
     "webDir": "capacitor-www",
     "server": {
         "url": "https://fit.codinguniverse.ro",

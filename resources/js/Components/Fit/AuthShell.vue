@@ -1,6 +1,4 @@
 <script setup>
-import {BoltIcon} from '@heroicons/vue/24/solid/index.js';
-
 defineProps({
     title: {type: String, required: true},
     subtitle: {type: String, default: ''},
@@ -15,12 +13,7 @@ defineProps({
 
         <div class="pt-safe pb-safe relative mx-auto flex min-h-[100dvh] max-w-md flex-col justify-center px-6 py-10">
             <div class="mb-8">
-                <div class="flex items-center gap-3">
-                    <div class="flex size-12 items-center justify-center rounded-2xl bg-gradient-to-br from-lime to-aqua text-ink shadow-[0_10px_30px_-8px_rgba(184,243,74,0.6)]">
-                        <BoltIcon class="size-7"/>
-                    </div>
-                    <span class="text-lg font-extrabold tracking-tight">Kalo</span>
-                </div>
+                <img src="/images/kalo-mind-logo.svg" alt="Kalo Mind" class="h-11 w-auto">
 
                 <h1 class="mt-10 text-4xl font-extrabold leading-tight tracking-tight">{{ title }}</h1>
                 <p v-if="subtitle" class="mt-2 text-base text-white/60">{{ subtitle }}</p>
