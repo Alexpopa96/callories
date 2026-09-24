@@ -78,8 +78,8 @@ export function useMealItems(initial = []) {
             const products = new Map(items.value.filter((item) => item.barcode || item.image_url).map((item) => [item.name, item]));
             items.value = list.map((item) => fromAnalysis({
                 ...item,
-                image_url: item.image_url ?? products.get(item.name)?.image_url,
-                barcode: item.barcode ?? products.get(item.name)?.barcode,
+                image_url: 'image_url' in item ? item.image_url : products.get(item.name)?.image_url,
+                barcode: 'barcode' in item ? item.barcode : products.get(item.name)?.barcode,
             }));
         },
         add: (item) => {

@@ -44,6 +44,7 @@ class MealBuilder
             'fat_g' => round((float) $item['fat_g'], 1),
             'fiber_g' => round((float) $item['fiber_g'], 1),
             ...(! empty($item['barcode']) ? ['barcode' => $item['barcode']] : []),
+            ...(str_starts_with($item['image_url'] ?? '', 'https://images.openfoodfacts.org/') ? ['image_url' => $item['image_url']] : []),
         ]);
 
         return [
