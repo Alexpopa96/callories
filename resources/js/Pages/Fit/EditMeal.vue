@@ -24,7 +24,7 @@ const newPhotoPreview = ref(null);
 const removePhoto = ref(false);
 const photoSheet = ref(false);
 const confirmRemove = ref(false);
-const confirmSave = ref(false);
+const confirmNewPhoto = ref(false);
 const photoBusy = ref(false);
 const cameraInput = ref(null);
 const galleryInput = ref(null);
@@ -54,6 +54,17 @@ async function pickPhoto(event) {
     removePhoto.value = false;
     photoBusy.value = false;
     photoSheet.value = false;
+    confirmNewPhoto.value = true;
+}
+
+function saveNewPhoto() {
+    confirmNewPhoto.value = false;
+    save();
+}
+
+function discardNewPhoto() {
+    confirmNewPhoto.value = false;
+    clearNewPhoto();
 }
 
 function askRemovePhoto() {
@@ -61,10 +72,12 @@ function askRemovePhoto() {
     confirmRemove.value = true;
 }
 
-function markPhotoRemoved() {
+// confirming the removal saves the meal right away, together with any other edits
+function removePhotoAndSave() {
     clearNewPhoto();
     removePhoto.value = true;
     confirmRemove.value = false;
+    save();
 }
 
 function undoPhotoChange() {
@@ -79,14 +92,7 @@ function onRefined(data) {
     notes.value = data.notes || notes.value;
 }
 
-// a photo change is only applied on save, so it gets confirmed there once more
-function requestSave() {
-    if (photoPending.value) confirmSave.value = true;
-    else save();
-}
-
 function save() {
-    confirmSave.value = false;
     form.title = title.value;
     form.items = list.payload();
     form.notes = notes.value;
@@ -143,27 +149,27 @@ function save() {
                 </button>
             </div>
         </BottomSheet>
-        <BottomSheet :open="confirmSave" title="Salvezi modificările?" @close="confirmSave = false">
-            <img v-if="photoUrl" :src="photoUrl" alt="" class="mb-4 max-h-40 w-full rounded-2xl object-cover"/>
+        <BottomSheet :open="confirmNewPhoto" title="Salvezi poza?" @close="discardNewPhoto">
+            <img v-if="newPhotoPreview" :src="newPhotoPreview" alt="" class="mb-4 max-h-56 w-full rounded-2xl object-cover"/>
             <p class="text-sm text-white/65">
-                {{ removePhoto ? 'Poza mesei va fi ștearsă definitiv.' : (meal.photoUrl ? 'Poza nouă o va înlocui pe cea veche, care va fi ștearsă.' : 'Poza nouă va fi adăugată la masă.') }}
+                {{ meal.photoUrl ? 'Poza nouă o înlocuiește pe cea veche, iar masa se salvează imediat.' : 'Poza se adaugă la masă, iar masa se salvează imediat.' }}
             </p>
             <div class="mt-4 grid grid-cols-2 gap-2">
                 <button type="button"
                         class="h-14 rounded-2xl bg-white/5 text-base font-bold text-white active:scale-[0.98]"
-                        @click="confirmSave = false">
+                        @click="discardNewPhoto">
                     Renunță
                 </button>
                 <button type="button" :disabled="form.processing"
                         class="h-14 rounded-2xl bg-lime text-base font-extrabold text-ink active:scale-[0.98] disabled:opacity-50"
-                        @click="save">
+                        @click="saveNewPhoto">
                     Salvează
                 </button>
             </div>
         </BottomSheet>
         <BottomSheet :open="confirmRemove" title="Ștergi poza?" @close="confirmRemove = false">
             <img v-if="photoUrl" :src="photoUrl" alt="" class="mb-4 max-h-40 w-full rounded-2xl object-cover opacity-80"/>
-            <p class="text-sm text-white/65">Poza se șterge definitiv când salvezi modificările mesei.</p>
+            <p class="text-sm text-white/65">Poza se șterge definitiv și masa se salvează imediat.</p>
             <div class="mt-4 grid grid-cols-2 gap-2">
                 <button type="button"
                         class="h-14 rounded-2xl bg-white/5 text-base font-bold text-white active:scale-[0.98]"
@@ -172,7 +178,7 @@ function save() {
                 </button>
                 <button type="button"
                         class="flex h-14 items-center justify-center gap-2 rounded-2xl bg-rose text-base font-extrabold text-white active:scale-[0.98]"
-                        @click="markPhotoRemoved">
+                        @click="removePhotoAndSave">
                     <TrashIcon class="size-5"/> Șterge
                 </button>
             </div>
@@ -212,7 +218,7 @@ function save() {
                 </div>
                 <button type="button" :disabled="form.processing || !list.items.value.length"
                         class="h-14 flex-1 rounded-2xl bg-lime text-base font-extrabold text-ink active:scale-[0.98] disabled:opacity-50"
-                        @click="requestSave">
+                        @click="save">
                     {{ form.processing ? 'Se salvează…' : 'Salvează modificările' }}
                 </button>
             </div>
