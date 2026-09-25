@@ -25,7 +25,7 @@ class ChallengeProgress
     /**
      * Totals for a single day of the challenge, measured against the challenge targets.
      *
-     * @return array{date: string, dayNumber: int, calories: int, proteinG: float, carbsG: float, fatG: float, waterMl: int, exerciseCalories: int, calorieBudget: int, meals: int, pctCalories: int, pctProtein: int, pctCarbs: int, pctFat: int, pctWater: int, prev: ?string, next: ?string}
+     * @return array{date: string, dayNumber: int, calories: int, proteinG: float, carbsG: float, fatG: float, waterMl: int, exerciseCalories: int, calorieBudget: int, meals: int, pctCalories: int, pctProtein: int, pctCarbs: int, pctFat: int, pctWater: int, prev: ?string, next: ?string, verdict: array{rating: string, reasons: list<array{ok: bool, text: string}>}}
      */
     public function forDay(Challenge $challenge, CarbonImmutable $date): array
     {
@@ -61,6 +61,54 @@ class ChallengeProgress
             'pctWater' => $pctOf($day['water_ml'], $challenge->water_goal_ml),
             'prev' => $prev->greaterThanOrEqualTo($from) ? $prev->toDateString() : null,
             'next' => $this->clampDate($challenge, $next)->equalTo($next) ? $next->toDateString() : null,
+            'verdict' => $this->verdict($challenge, $day, $calorieBudget, $date->isToday()),
+        ];
+    }
+
+    /**
+     * How the day went: calories count double, protein and water once each.
+     * Today is still running, so it only gets a verdict once the calorie budget is blown.
+     *
+     * @param  array{calories: int, protein_g: float, water_ml: int, meals: int}  $day
+     * @return array{rating: string, reasons: list<array{ok: bool, text: string}>}
+     */
+    private function verdict(Challenge $challenge, array $day, int $calorieBudget, bool $isToday): array
+    {
+        if ($day['meals'] === 0) {
+            return ['rating' => $isToday ? 'pending' : 'empty', 'reasons' => []];
+        }
+
+        $deviation = $calorieBudget > 0 ? ($day['calories'] - $calorieBudget) / $calorieBudget * 100 : 0;
+        $proteinPct = $challenge->protein_goal_g > 0 ? $day['protein_g'] / $challenge->protein_goal_g * 100 : 100;
+        $waterPct = $challenge->water_goal_ml > 0 ? $day['water_ml'] / $challenge->water_goal_ml * 100 : 100;
+
+        $calorieScore = abs($deviation) <= 10 ? 2 : (abs($deviation) <= 20 ? 1 : 0);
+        $proteinScore = $proteinPct >= 80 ? 2 : ($proteinPct >= 60 ? 1 : 0);
+        $waterScore = $waterPct >= 80 ? 2 : ($waterPct >= 50 ? 1 : 0);
+
+        $reasons = [
+            ['ok' => $calorieScore === 2, 'text' => match (true) {
+                $calorieScore === 2 => 'Calorii în țintă',
+                $deviation > 0 => 'Calorii cu '.round($deviation).'% peste buget',
+                default => 'Calorii cu '.round(abs($deviation)).'% sub buget',
+            }],
+            ['ok' => $proteinScore === 2, 'text' => $proteinScore === 2 ? 'Proteine atinse' : 'Proteine '.round($proteinPct).'% din țintă'],
+            ['ok' => $waterScore === 2, 'text' => match (true) {
+                $waterScore === 2 => 'Apă suficientă',
+                $day['water_ml'] === 0 => 'Apă nenotată',
+                default => 'Apă '.round($waterPct).'% din țintă',
+            }],
+        ];
+
+        if ($isToday && $deviation <= 10) {
+            return ['rating' => 'pending', 'reasons' => $reasons];
+        }
+
+        $score = $calorieScore * 2 + $proteinScore + $waterScore;
+
+        return [
+            'rating' => $score >= 6 ? 'good' : ($score >= 4 ? 'ok' : 'bad'),
+            'reasons' => $reasons,
         ];
     }
 

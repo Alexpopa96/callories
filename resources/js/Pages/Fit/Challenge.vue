@@ -6,8 +6,12 @@ import ProgressRing from '@/Components/Fit/ProgressRing.vue';
 import BottomSheet from '@/Components/Fit/BottomSheet.vue';
 import {
     BeakerIcon,
+    CheckCircleIcon,
     ChevronLeftIcon,
     ChevronRightIcon,
+    ClockIcon,
+    ExclamationCircleIcon,
+    FaceFrownIcon,
     FireIcon,
     ScaleIcon,
     TrophyIcon,
@@ -93,6 +97,19 @@ const macros = computed(() => {
         {label: 'Carbohidrați', value: day.carbsG, goal: targets.carbsG, pct: day.pctCarbs, avg: progress.avgCarbsG, text: 'text-sun', bar: 'bg-sun'},
         {label: 'Grăsimi', value: day.fatG, goal: targets.fatG, pct: day.pctFat, avg: progress.avgFatG, text: 'text-rose', bar: 'bg-rose'},
     ];
+});
+
+const verdictStyles = {
+    good: {label: 'Zi bună', icon: CheckCircleIcon, box: 'border-lime/30 bg-lime/[0.08]', text: 'text-lime'},
+    ok: {label: 'Zi medie', icon: ExclamationCircleIcon, box: 'border-sun/30 bg-sun/[0.08]', text: 'text-sun'},
+    bad: {label: 'Zi slabă', icon: FaceFrownIcon, box: 'border-rose/30 bg-rose/[0.08]', text: 'text-rose'},
+    pending: {label: 'Ziua e în desfășurare', icon: ClockIcon, box: 'border-white/10 bg-white/[0.04]', text: 'text-white/60'},
+};
+
+const verdict = computed(() => {
+    const value = props.challenge?.day.verdict;
+    if (!value || !verdictStyles[value.rating]) return null;
+    return {...verdictStyles[value.rating], reasons: value.reasons};
 });
 
 const goalLabel = computed(() => goalLabels[props.challenge?.goal] ?? '');
@@ -260,7 +277,20 @@ const chart = computed(() => {
                     </button>
                 </div>
 
-                <p class="mt-3 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-white/50">
+                <div v-if="verdict" class="mt-3 rounded-2xl border p-3" :class="verdict.box">
+                    <p class="flex items-center gap-1.5 text-sm font-extrabold" :class="verdict.text">
+                        <component :is="verdict.icon" class="size-5"/> {{ verdict.label }}
+                    </p>
+                    <div v-if="verdict.reasons.length" class="mt-2 flex flex-wrap gap-1.5">
+                        <span v-for="reason in verdict.reasons" :key="reason.text"
+                              class="rounded-full px-2.5 py-1 text-[11px] font-semibold"
+                              :class="reason.ok ? 'bg-lime/15 text-lime' : 'bg-white/10 text-white/60'">
+                            {{ reason.text }}
+                        </span>
+                    </div>
+                </div>
+
+                <p class="mt-4 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-white/50">
                     <FireIcon class="size-4 text-lime"/> Ținte zilnice
                 </p>
                 <div class="mt-3 grid grid-cols-2 gap-3">

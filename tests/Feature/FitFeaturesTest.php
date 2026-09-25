@@ -440,16 +440,26 @@ class FitFeaturesTest extends TestCase
             ->where('challenge.day.isToday', true)
             ->where('challenge.day.dayNumber', 3)
             ->where('challenge.day.calories', 0)
+            ->where('challenge.day.verdict.rating', 'pending')
             ->where('challenge.day.next', null));
 
         $this->actingAs(User::find($userId))->get('/challenge?date='.$start->addDay()->toDateString())->assertInertia(fn ($page) => $page
             ->where('challenge.day.calories', 300)
+            ->where('challenge.day.verdict.rating', 'bad')
             ->where('challenge.day.prev', $start->toDateString()));
+
+        // a past day right on budget, with protein and water hit, is a good day
+        $user = User::find($userId);
+        $challenge = $user->activeChallenge;
+        $this->meal($user, ['eaten_on' => $start->toDateString(), 'calories' => $challenge->calorie_goal - 520, 'protein_g' => $challenge->protein_goal_g]);
+        $user->dailyLogs()->create(['date' => $start->toDateString(), 'water_ml' => $challenge->water_goal_ml]);
+
+        $this->actingAs(User::find($userId))->get('/challenge?date='.$start->toDateString())->assertInertia(fn ($page) => $page
+            ->where('challenge.day.verdict.rating', 'good'));
 
         // days before the challenge snap to its first day
         $this->actingAs(User::find($userId))->get('/challenge?date='.$start->subDays(5)->toDateString())->assertInertia(fn ($page) => $page
             ->where('challenge.day.date', $start->toDateString())
-            ->where('challenge.day.calories', 520)
             ->where('challenge.day.prev', null));
     }
 
