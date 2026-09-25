@@ -1,5 +1,6 @@
 <script setup>
 import {computed, ref, watch} from 'vue';
+import axios from 'axios';
 import {Head, Link, router, useForm, usePage} from '@inertiajs/vue3';
 import FitLayout from '@/Layouts/FitLayout.vue';
 import BottomSheet from '@/Components/Fit/BottomSheet.vue';
@@ -28,6 +29,7 @@ const props = defineProps({
     aiModel: String,
     aiModels: Object,
     pushKey: {type: String, default: null},
+    canTestPush: {type: Boolean, default: false},
 });
 
 const page = usePage();
@@ -148,6 +150,30 @@ async function setReminders(next) {
 }
 
 const canPush = computed(() => isNativeApp() || (pushSupported() && !!props.pushKey));
+
+const testingPush = ref(false);
+const testPushResult = ref(null);
+
+async function sendTestPush() {
+    testingPush.value = true;
+    testPushResult.value = null;
+
+    const result = await enablePush(props.pushKey);
+    if (!result.ok) {
+        testPushResult.value = result.reason;
+        testingPush.value = false;
+        return;
+    }
+
+    try {
+        const {data} = await axios.post('/push/test');
+        testPushResult.value = data.sent > 0 ? `Trimis către ${data.sent} dispozitiv(e).` : 'Nu am găsit niciun dispozitiv abonat.';
+    } catch (error) {
+        testPushResult.value = error.response?.data?.reason ?? 'Trimiterea a eșuat.';
+    } finally {
+        testingPush.value = false;
+    }
+}
 
 // account
 const deleteSheet = ref(false);
@@ -337,6 +363,14 @@ const logout = () => router.post('/logout');
                 {{ pushKey ? 'Browserul acesta nu suportă notificări. Pe iPhone, adaugă mai întâi aplicația pe ecranul principal.' : 'Notificările nu sunt configurate pe server.' }}
             </p>
             <p v-if="pushError" class="text-sm text-rose">{{ pushError }}</p>
+            <div v-if="canTestPush && !isNativeApp()" class="space-y-2 border-t border-white/10 pt-4">
+                <button type="button" :disabled="!canPush || testingPush"
+                        class="h-12 w-full rounded-2xl bg-white/10 font-bold text-white active:scale-[0.98] disabled:opacity-40"
+                        @click="sendTestPush">
+                    {{ testingPush ? 'Se trimite…' : 'Test notificare' }}
+                </button>
+                <p v-if="testPushResult" class="text-xs text-white/60">{{ testPushResult }}</p>
+            </div>
         </div>
         </Section>
 

@@ -33,6 +33,7 @@ use App\Http\Controllers\Fit\StoreMeal;
 use App\Http\Controllers\Fit\StoreWeight;
 use App\Http\Controllers\Fit\StoreWorkout;
 use App\Http\Controllers\Fit\SubscribePush;
+use App\Http\Controllers\Fit\TestPush;
 use App\Http\Controllers\Fit\UnsubscribePush;
 use App\Http\Controllers\Fit\UpdateAiModel;
 use App\Http\Controllers\Fit\UpdateApiKey;
@@ -107,4 +108,5 @@ Route::middleware(['auth'])->group(function () {
 
     Route::post('push/subscribe', SubscribePush::class)->name('fit.push.subscribe');
     Route::post('push/unsubscribe', UnsubscribePush::class)->name('fit.push.unsubscribe');
+    Route::post('push/test', TestPush::class)->name('fit.push.test');
 });

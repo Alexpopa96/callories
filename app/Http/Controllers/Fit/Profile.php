@@ -39,6 +39,7 @@ class Profile extends Controller
             'aiModel' => $user->anthropicModel(),
             'aiModels' => Models::options(),
             'pushKey' => config('services.webpush.public_key'),
+            'canTestPush' => TestPush::allowed($user),
         ]);
     }
 }
