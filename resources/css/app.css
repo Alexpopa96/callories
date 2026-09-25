@@ -2,6 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
+/* iOS Safari zooms into any field under 16px on focus. */
+@supports (-webkit-touch-callout: none) {
+    input,
+    select,
+    textarea {
+        font-size: max(16px, 1em) !important;
+    }
+}
+
 [x-cloak] {
     display: none;
 }
