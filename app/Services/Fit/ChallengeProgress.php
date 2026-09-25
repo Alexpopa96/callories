@@ -10,6 +10,61 @@ class ChallengeProgress
     public function __construct(private DayStats $dayStats) {}
 
     /**
+     * The given day clamped to the part of the challenge that has already happened.
+     */
+    public function clampDate(Challenge $challenge, CarbonImmutable $date): CarbonImmutable
+    {
+        $from = CarbonImmutable::parse($challenge->started_on);
+        $end = CarbonImmutable::parse($challenge->ends_on);
+        $today = CarbonImmutable::today();
+        $last = $today->lessThan($end) ? $today : $end;
+
+        return $date->lessThan($from) ? $from : ($date->greaterThan($last) ? $last : $date);
+    }
+
+    /**
+     * Totals for a single day of the challenge, measured against the challenge targets.
+     *
+     * @return array{date: string, dayNumber: int, calories: int, proteinG: float, carbsG: float, fatG: float, waterMl: int, exerciseCalories: int, calorieBudget: int, meals: int, pctCalories: int, pctProtein: int, pctCarbs: int, pctFat: int, pctWater: int, prev: ?string, next: ?string}
+     */
+    public function forDay(Challenge $challenge, CarbonImmutable $date): array
+    {
+        $date = $this->clampDate($challenge, $date);
+        $from = CarbonImmutable::parse($challenge->started_on);
+        $day = $this->dayStats->range($challenge->user, $date, $date)[$date->toDateString()];
+
+        // calories burned through exercise raise that day's budget, same as on the home screen
+        $calorieBudget = (int) $challenge->calorie_goal + $day['exercise_calories'];
+
+        $pctOf = fn (float $actual, float $target) => $target > 0
+            ? (int) max(0, min(100, round($actual / $target * 100)))
+            : 0;
+
+        $prev = $date->subDay();
+        $next = $date->addDay();
+
+        return [
+            'date' => $date->toDateString(),
+            'dayNumber' => $from->diffInDays($date) + 1,
+            'calories' => $day['calories'],
+            'proteinG' => $day['protein_g'],
+            'carbsG' => $day['carbs_g'],
+            'fatG' => $day['fat_g'],
+            'waterMl' => $day['water_ml'],
+            'exerciseCalories' => $day['exercise_calories'],
+            'calorieBudget' => $calorieBudget,
+            'meals' => $day['meals'],
+            'pctCalories' => $pctOf($day['calories'], $calorieBudget),
+            'pctProtein' => $pctOf($day['protein_g'], $challenge->protein_goal_g),
+            'pctCarbs' => $pctOf($day['carbs_g'], $challenge->carbs_goal_g),
+            'pctFat' => $pctOf($day['fat_g'], $challenge->fat_goal_g),
+            'pctWater' => $pctOf($day['water_ml'], $challenge->water_goal_ml),
+            'prev' => $prev->greaterThanOrEqualTo($from) ? $prev->toDateString() : null,
+            'next' => $this->clampDate($challenge, $next)->equalTo($next) ? $next->toDateString() : null,
+        ];
+    }
+
+    /**
      * @return array{daysElapsed: int, daysLeft: int, totalDays: int, pctDays: int, startWeightKg: float, targetWeightKg: float, currentWeightKg: float, weightDeltaKg: float, pctWeight: ?int, avgCalories: int, avgProteinG: float, avgCarbsG: float, avgFatG: float, avgWaterMl: int, avgCalorieBudget: int, pctCalories: int, pctProtein: int, pctCarbs: int, pctFat: int, pctWater: int, adherencePct: int, lastWeighInDate: ?string}
      */
     public function forChallenge(Challenge $challenge): array

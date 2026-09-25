@@ -420,6 +420,39 @@ class FitFeaturesTest extends TestCase
         $this->assertSame('active', User::find($userId)->activeChallenge->status);
     }
 
+    public function test_challenge_page_shows_the_selected_day_within_the_challenge(): void
+    {
+        $user = $this->user(['sex' => 'm', 'birth_date' => '1990-01-01', 'height_cm' => 180]);
+        $userId = $user->id;
+        $start = CarbonImmutable::today();
+
+        $this->actingAs($user)->post('/challenge', [
+            'weightKg' => 90, 'targetWeightKg' => 85, 'days' => 30, 'goal' => 'lose_weight',
+        ]);
+        $this->meal(User::find($userId));
+        $this->meal(User::find($userId), ['eaten_on' => $start->addDay()->toDateString(), 'calories' => 300]);
+
+        $this->travelTo($start->addDays(2)->setTime(12, 0));
+
+        // defaults to today, which has nothing logged yet
+        $this->actingAs(User::find($userId))->get('/challenge')->assertInertia(fn ($page) => $page
+            ->where('challenge.day.date', $start->addDays(2)->toDateString())
+            ->where('challenge.day.isToday', true)
+            ->where('challenge.day.dayNumber', 3)
+            ->where('challenge.day.calories', 0)
+            ->where('challenge.day.next', null));
+
+        $this->actingAs(User::find($userId))->get('/challenge?date='.$start->addDay()->toDateString())->assertInertia(fn ($page) => $page
+            ->where('challenge.day.calories', 300)
+            ->where('challenge.day.prev', $start->toDateString()));
+
+        // days before the challenge snap to its first day
+        $this->actingAs(User::find($userId))->get('/challenge?date='.$start->subDays(5)->toDateString())->assertInertia(fn ($page) => $page
+            ->where('challenge.day.date', $start->toDateString())
+            ->where('challenge.day.calories', 520)
+            ->where('challenge.day.prev', null));
+    }
+
     // --- assistant --------------------------------------------------------------------------
 
     public function test_assistant_page_shows_todays_remaining_macros(): void

@@ -6,6 +6,8 @@ import ProgressRing from '@/Components/Fit/ProgressRing.vue';
 import BottomSheet from '@/Components/Fit/BottomSheet.vue';
 import {
     BeakerIcon,
+    ChevronLeftIcon,
+    ChevronRightIcon,
     FireIcon,
     ScaleIcon,
     TrophyIcon,
@@ -73,6 +75,25 @@ function saveDays() {
         onSuccess: () => (editDaysSheet.value = false),
     });
 }
+
+// day picker, limited server-side to the days of the challenge
+function goToDay(date) {
+    if (!date) return;
+    router.get('/challenge', {date}, {preserveScroll: true, preserveState: true});
+}
+
+const liters = (ml) => (ml / 1000).toLocaleString('ro-RO', {maximumFractionDigits: 1});
+
+const macros = computed(() => {
+    if (!props.challenge) return [];
+    const {day, targets, progress} = props.challenge;
+
+    return [
+        {label: 'Proteine', value: day.proteinG, goal: targets.proteinG, pct: day.pctProtein, avg: progress.avgProteinG, text: 'text-aqua', bar: 'bg-aqua'},
+        {label: 'Carbohidrați', value: day.carbsG, goal: targets.carbsG, pct: day.pctCarbs, avg: progress.avgCarbsG, text: 'text-sun', bar: 'bg-sun'},
+        {label: 'Grăsimi', value: day.fatG, goal: targets.fatG, pct: day.pctFat, avg: progress.avgFatG, text: 'text-rose', bar: 'bg-rose'},
+    ];
+});
 
 const goalLabel = computed(() => goalLabels[props.challenge?.goal] ?? '');
 
@@ -222,59 +243,66 @@ const chart = computed(() => {
             </section>
 
             <section class="mt-4 rounded-[1.75rem] border border-white/10 bg-panel p-5">
-                <p class="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-white/50">
+                <div class="-mx-2 -mt-2 flex items-center justify-between">
+                    <button type="button" aria-label="Ziua anterioară" :disabled="!challenge.day.prev"
+                            class="flex size-11 items-center justify-center rounded-full text-white/60 active:scale-90 disabled:opacity-25"
+                            @click="goToDay(challenge.day.prev)">
+                        <ChevronLeftIcon class="size-5"/>
+                    </button>
+                    <div class="text-center">
+                        <p class="text-sm font-extrabold">{{ challenge.day.isToday ? 'Azi' : challenge.day.label }}</p>
+                        <p class="text-[11px] font-semibold text-white/45">Ziua {{ challenge.day.dayNumber }} din {{ challenge.progress.totalDays }}</p>
+                    </div>
+                    <button type="button" aria-label="Ziua următoare" :disabled="!challenge.day.next"
+                            class="flex size-11 items-center justify-center rounded-full text-white/60 active:scale-90 disabled:opacity-25"
+                            @click="goToDay(challenge.day.next)">
+                        <ChevronRightIcon class="size-5"/>
+                    </button>
+                </div>
+
+                <p class="mt-3 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-white/50">
                     <FireIcon class="size-4 text-lime"/> Ținte zilnice
                 </p>
                 <div class="mt-3 grid grid-cols-2 gap-3">
                     <div class="flex flex-col">
-                        <p class="text-2xl font-extrabold leading-none">{{ challenge.targets.calories }}</p>
-                        <p class="mt-1 text-[11px] text-white/45">kcal/zi (medie reală: {{ challenge.progress.avgCalories }}<template v-if="challenge.progress.avgCalorieBudget > challenge.targets.calories"> din {{ challenge.progress.avgCalorieBudget }} cu sportul</template>)</p>
+                        <p class="text-2xl font-extrabold leading-none">{{ challenge.day.calories }}
+                            <span class="text-sm font-semibold text-white/45">/ {{ challenge.day.calorieBudget }}</span>
+                        </p>
+                        <p class="mt-1 text-[11px] text-white/45">kcal<template v-if="challenge.day.exerciseCalories > 0"> (+{{ challenge.day.exerciseCalories }} din sport)</template> · medie {{ challenge.progress.avgCalories }}</p>
                         <div class="mt-auto pt-1">
-                            <p class="text-xs font-bold text-lime">{{ challenge.progress.pctCalories }}% realizat</p>
+                            <p class="text-xs font-bold text-lime">{{ challenge.day.pctCalories }}% realizat</p>
                             <div class="mt-1 h-1.5 overflow-hidden rounded-full bg-white/10">
-                                <div class="h-full rounded-full bg-lime transition-all duration-700" :style="{width: `${challenge.progress.pctCalories}%`}"></div>
+                                <div class="h-full rounded-full bg-lime transition-all duration-700" :style="{width: `${challenge.day.pctCalories}%`}"></div>
                             </div>
                         </div>
                     </div>
                     <div class="flex flex-col">
                         <p class="flex items-center gap-1 text-2xl font-extrabold leading-none">
-                            <BeakerIcon class="size-4 text-aqua"/> {{ (challenge.targets.waterMl / 1000).toLocaleString('ro-RO') }} L
+                            <BeakerIcon class="size-4 text-aqua"/> {{ liters(challenge.day.waterMl) }}
+                            <span class="text-sm font-semibold text-white/45">/ {{ liters(challenge.targets.waterMl) }} L</span>
                         </p>
-                        <p class="mt-1 text-[11px] text-white/45">apă/zi (medie reală: {{ (challenge.progress.avgWaterMl / 1000).toLocaleString('ro-RO', {maximumFractionDigits: 1}) }} L)</p>
+                        <p class="mt-1 text-[11px] text-white/45">apă · medie {{ liters(challenge.progress.avgWaterMl) }} L</p>
                         <div class="mt-auto pt-1">
-                            <p class="text-xs font-bold text-aqua">{{ challenge.progress.pctWater }}% realizat</p>
+                            <p class="text-xs font-bold text-aqua">{{ challenge.day.pctWater }}% realizat</p>
                             <div class="mt-1 h-1.5 overflow-hidden rounded-full bg-white/10">
-                                <div class="h-full rounded-full bg-aqua transition-all duration-700" :style="{width: `${challenge.progress.pctWater}%`}"></div>
+                                <div class="h-full rounded-full bg-aqua transition-all duration-700" :style="{width: `${challenge.day.pctWater}%`}"></div>
                             </div>
                         </div>
                     </div>
                 </div>
                 <div class="mt-4 grid grid-cols-3 gap-2 border-t border-white/5 pt-3 text-center">
-                    <div>
-                        <p class="text-lg font-extrabold">{{ challenge.targets.proteinG }} <span class="text-xs font-semibold text-white/50">g</span></p>
-                        <p class="text-[11px] text-white/40">Proteine</p>
-                        <p class="mt-1 text-[11px] font-bold text-aqua">{{ Math.round(challenge.progress.avgProteinG) }} g <span class="font-semibold text-white/35">·</span> {{ challenge.progress.pctProtein }}%</p>
+                    <div v-for="macro in macros" :key="macro.label">
+                        <p class="text-lg font-extrabold">{{ Math.round(macro.value) }} <span class="text-xs font-semibold text-white/50">/ {{ macro.goal }} g</span></p>
+                        <p class="text-[11px] text-white/40">{{ macro.label }}</p>
+                        <p class="mt-1 text-[11px] font-bold" :class="macro.text">{{ macro.pct }}% <span class="font-semibold text-white/35">· medie {{ Math.round(macro.avg) }} g</span></p>
                         <div class="mt-1 h-1 overflow-hidden rounded-full bg-white/10">
-                            <div class="h-full rounded-full bg-aqua transition-all duration-700" :style="{width: `${challenge.progress.pctProtein}%`}"></div>
-                        </div>
-                    </div>
-                    <div>
-                        <p class="text-lg font-extrabold">{{ challenge.targets.carbsG }} <span class="text-xs font-semibold text-white/50">g</span></p>
-                        <p class="text-[11px] text-white/40">Carbohidrați</p>
-                        <p class="mt-1 text-[11px] font-bold text-sun">{{ Math.round(challenge.progress.avgCarbsG) }} g <span class="font-semibold text-white/35">·</span> {{ challenge.progress.pctCarbs }}%</p>
-                        <div class="mt-1 h-1 overflow-hidden rounded-full bg-white/10">
-                            <div class="h-full rounded-full bg-sun transition-all duration-700" :style="{width: `${challenge.progress.pctCarbs}%`}"></div>
-                        </div>
-                    </div>
-                    <div>
-                        <p class="text-lg font-extrabold">{{ challenge.targets.fatG }} <span class="text-xs font-semibold text-white/50">g</span></p>
-                        <p class="text-[11px] text-white/40">Grăsimi</p>
-                        <p class="mt-1 text-[11px] font-bold text-rose">{{ Math.round(challenge.progress.avgFatG) }} g <span class="font-semibold text-white/35">·</span> {{ challenge.progress.pctFat }}%</p>
-                        <div class="mt-1 h-1 overflow-hidden rounded-full bg-white/10">
-                            <div class="h-full rounded-full bg-rose transition-all duration-700" :style="{width: `${challenge.progress.pctFat}%`}"></div>
+                            <div class="h-full rounded-full transition-all duration-700" :class="macro.bar" :style="{width: `${macro.pct}%`}"></div>
                         </div>
                     </div>
                 </div>
+                <p v-if="challenge.day.meals === 0" class="mt-3 text-center text-[11px] text-white/40">
+                    Nicio masă notată în această zi — <a :href="`/today?date=${challenge.day.date}`" class="underline">adaugă</a>
+                </p>
             </section>
 
             <button type="button" class="mt-5 h-12 w-full rounded-2xl text-sm font-semibold text-rose/80 active:bg-rose/10"
