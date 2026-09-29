@@ -4,6 +4,8 @@ namespace App\Services\Fit;
 
 use Throwable;
 
+use function Illuminate\Support\defer;
+
 class Realtime
 {
     /**

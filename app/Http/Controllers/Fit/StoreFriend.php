@@ -10,6 +10,8 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
+use function Illuminate\Support\defer;
+
 class StoreFriend extends Controller
 {
     public function __invoke(Request $request, PushSender $sender): RedirectResponse

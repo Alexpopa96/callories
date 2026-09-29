@@ -8,6 +8,8 @@ use App\Services\Fit\PushSender;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
+use function Illuminate\Support\defer;
+
 class AcceptFriend extends Controller
 {
     public function __invoke(Request $request, int $friendship, PushSender $sender): RedirectResponse

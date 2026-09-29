@@ -11,6 +11,8 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
+use function Illuminate\Support\defer;
+
 class ReportMessage extends Controller
 {
     public function __invoke(Request $request, int $message, PushSender $sender): JsonResponse
