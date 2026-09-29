@@ -63,11 +63,11 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-    <div class="relative min-h-[100dvh] overflow-x-hidden bg-ink text-white [-webkit-tap-highlight-color:transparent] [touch-action:manipulation]">
+    <div class="relative min-h-[100dvh] overflow-x-clip bg-ink text-white [-webkit-tap-highlight-color:transparent] [touch-action:manipulation]">
         <div class="pointer-events-none absolute inset-x-0 top-0 h-72 bg-[radial-gradient(60%_60%_at_50%_0%,rgba(184,243,74,0.13),transparent)]"></div>
 
         <div class="relative mx-auto min-h-[100dvh] max-w-md" :class="$slots.footer ? 'pb-44' : hideNav ? 'pb-10' : 'pb-32'">
-            <header class="pt-safe px-5">
+            <header class="pt-safe sticky top-0 z-30 bg-ink/85 px-5 backdrop-blur-xl">
                 <div class="flex items-center justify-between gap-3 pb-4 pt-5">
                     <div class="flex min-w-0 items-center gap-3">
                         <Link v-if="back" :href="back" aria-label="Înapoi"
