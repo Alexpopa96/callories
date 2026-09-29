@@ -1,6 +1,7 @@
 <script setup>
-import {computed, onBeforeUnmount, onMounted, ref} from 'vue';
-import {Head, Link, router} from '@inertiajs/vue3';
+import {computed, onBeforeUnmount, onMounted, ref, watch} from 'vue';
+import {Head, Link, router, usePage} from '@inertiajs/vue3';
+import {onRealtime, realtimeConnected} from '@/Composables/useRealtime.js';
 import {enablePush, pushSupported} from '@/Composables/usePush.js';
 import {isNativeApp} from '@/Composables/useNativeReminders.js';
 import FitLayout from '@/Layouts/FitLayout.vue';
@@ -72,7 +73,7 @@ const pickable = computed(() => {
     return [...props.friends].sort((a, b) => Number(talking.has(b.userId)) - Number(talking.has(a.userId)));
 });
 
-// refresh the list while it is on screen, so new messages show up like in any messenger
+// refresh on live events; poll every 8 s only while the websocket is down
 const REFRESH_MS = 8000;
 let timer = null;
 
@@ -81,17 +82,30 @@ function refresh() {
     router.reload({only: ['chats', 'social'], preserveScroll: true, preserveState: true});
 }
 
+function tick() {
+    if (!realtimeConnected.value) refresh();
+}
+
+const me = usePage().props.auth.user.id;
+const unsubscribe = [
+    onRealtime(me, 'message.sent', refresh),
+    onRealtime(me, 'messages.read', refresh),
+];
+
+watch(realtimeConnected, (connected) => connected && refresh());
+
 function onVisible() {
     if (document.visibilityState === 'visible') refresh();
 }
 
 onMounted(() => {
     checkPush();
-    timer = setInterval(refresh, REFRESH_MS);
+    timer = setInterval(tick, REFRESH_MS);
     document.addEventListener('visibilitychange', onVisible);
 });
 
 onBeforeUnmount(() => {
+    unsubscribe.forEach((off) => off());
     clearInterval(timer);
     document.removeEventListener('visibilitychange', onVisible);
 });

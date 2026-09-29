@@ -1,6 +1,7 @@
 <script setup>
 import {computed, onBeforeUnmount, ref, watch} from 'vue';
 import {Link, router, usePage} from '@inertiajs/vue3';
+import {onRealtime} from '@/Composables/useRealtime.js';
 import {
     ArrowPathIcon,
     CameraIcon,
@@ -45,7 +46,20 @@ watch(() => page.props.toast, (toast) => {
     timer = setTimeout(() => (message.value = null), 2600);
 }, {immediate: true, deep: true});
 
-onBeforeUnmount(() => clearTimeout(timer));
+// keep the Chat tab badge live; the chats list refreshes itself
+const refreshBadges = () => {
+    if (!path.value.startsWith('/chat')) router.reload({only: ['social'], preserveScroll: true, preserveState: true});
+};
+const me = page.props.auth?.user?.id;
+const unsubscribe = me ? [
+    onRealtime(me, 'message.sent', ({recipientId}) => recipientId === me && refreshBadges()),
+    onRealtime(me, 'messages.read', ({readerId}) => readerId === me && refreshBadges()),
+] : [];
+
+onBeforeUnmount(() => {
+    clearTimeout(timer);
+    unsubscribe.forEach((off) => off());
+});
 </script>
 
 <template>

@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers\Fit;
 
+use App\Events\MessagesRead;
 use App\Http\Controllers\Controller;
 use App\Models\Message;
 use App\Models\User;
+use App\Services\Fit\Realtime;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -42,8 +44,16 @@ class ShowChat extends Controller
      */
     public static function markSeen(User $me, User $friend): void
     {
-        Message::where('sender_id', $friend->id)->where('recipient_id', $me->id)->whereNull('read_at')->update(['read_at' => now()]);
-        Cache::put(self::openKey($me, $friend), true, now()->addSeconds(20));
+        $unread = Message::where('sender_id', $friend->id)->where('recipient_id', $me->id)->whereNull('read_at');
+        $upTo = (int) (clone $unread)->max('id');
+
+        if ($upTo > 0) {
+            $unread->where('id', '<=', $upTo)->update(['read_at' => now()]);
+            Realtime::broadcast(new MessagesRead($me->id, $friend->id, $upTo));
+        }
+
+        // with a live connection the chat polls only as a fallback, every 20 seconds
+        Cache::put(self::openKey($me, $friend), true, now()->addSeconds(35));
     }
 
     public static function openKey(User $viewer, User $other): string

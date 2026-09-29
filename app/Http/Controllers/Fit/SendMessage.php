@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers\Fit;
 
+use App\Events\MessageSent;
 use App\Http\Controllers\Controller;
 use App\Models\Message;
 use App\Models\User;
 use App\Services\Fit\PushSender;
+use App\Services\Fit\Realtime;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -43,6 +45,8 @@ class SendMessage extends Controller
             'client_id' => $data['client_id'] ?? null,
             'body' => $body,
         ]);
+
+        Realtime::broadcast(new MessageSent($message));
 
         // no push while they are looking at this very conversation
         if ($friend->notify_messages && ! Cache::has(ShowChat::openKey($friend, $me))) {
