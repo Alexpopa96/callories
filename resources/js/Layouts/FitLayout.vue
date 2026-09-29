@@ -1,7 +1,8 @@
 <script setup>
 import {computed, onBeforeUnmount, ref, watch} from 'vue';
-import {Link, usePage} from '@inertiajs/vue3';
+import {Link, router, usePage} from '@inertiajs/vue3';
 import {
+    ArrowPathIcon,
     CameraIcon,
     ChartBarIcon,
     ChevronLeftIcon,
@@ -20,6 +21,15 @@ const page = usePage();
 const initial = computed(() => (page.props.auth?.user?.name ?? '?').trim().charAt(0).toUpperCase());
 const path = computed(() => page.url.split('?')[0]);
 const scanHref = computed(() => (props.scanDate ? `/scan?date=${props.scanDate}` : '/scan'));
+
+const reloading = ref(false);
+const reload = () => {
+    if (reloading.value) return;
+    router.reload({
+        onStart: () => (reloading.value = true),
+        onFinish: () => (reloading.value = false),
+    });
+};
 
 const message = ref(null);
 let timer = null;
@@ -52,11 +62,17 @@ onBeforeUnmount(() => clearTimeout(timer));
                             <h1 class="truncate text-2xl font-extrabold tracking-tight">{{ title }}</h1>
                         </div>
                     </div>
+                    <div class="flex shrink-0 items-center gap-2">
+                    <button type="button" aria-label="Reîncarcă" :disabled="reloading" @click="reload"
+                            class="flex size-10 items-center justify-center rounded-full bg-white/5 text-white/70 active:scale-95">
+                        <ArrowPathIcon class="size-5" :class="{'animate-spin': reloading}"/>
+                    </button>
                     <Link href="/me" aria-label="Profil"
                           class="relative flex size-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-lime to-aqua text-sm font-extrabold text-ink">
                         {{ initial }}
                         <span v-if="page.props.friendsBadge" class="absolute -right-0.5 -top-0.5 size-3 rounded-full bg-rose ring-2 ring-ink"></span>
                     </Link>
+                    </div>
                 </div>
             </header>
 
