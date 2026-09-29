@@ -1,9 +1,12 @@
 <script setup>
 import {computed, onBeforeUnmount, onMounted, ref} from 'vue';
 import {Head, Link, router} from '@inertiajs/vue3';
+import {enablePush, pushSupported} from '@/Composables/usePush.js';
+import {isNativeApp} from '@/Composables/useNativeReminders.js';
 import FitLayout from '@/Layouts/FitLayout.vue';
 import BottomSheet from '@/Components/Fit/BottomSheet.vue';
 import {
+    BellAlertIcon,
     ChatBubbleOvalLeftEllipsisIcon,
     MagnifyingGlassIcon,
     PencilSquareIcon,
@@ -14,7 +17,41 @@ import {CheckIcon} from '@heroicons/vue/24/solid/index.js';
 const props = defineProps({
     chats: Array,
     friends: Array,
+    pushKey: {type: String, default: null},
+    notifyMessages: {type: Boolean, default: true},
 });
+
+// nudge towards push when this device would miss new messages
+const needsPush = ref(false);
+const pushBusy = ref(false);
+const pushError = ref('');
+
+async function checkPush() {
+    if (isNativeApp() || !pushSupported() || !props.pushKey) return;
+
+    try {
+        const registration = await navigator.serviceWorker.getRegistration('/sw.js');
+        const subscribed = Notification.permission === 'granted' && !!(await registration?.pushManager.getSubscription());
+        needsPush.value = !subscribed || !props.notifyMessages;
+    } catch {
+        needsPush.value = false;
+    }
+}
+
+async function turnOnPush() {
+    pushBusy.value = true;
+    pushError.value = '';
+    const result = await enablePush(props.pushKey);
+
+    if (result.ok) {
+        router.put('/me/notify-messages', {enabled: true}, {preserveScroll: true});
+        needsPush.value = false;
+    } else {
+        pushError.value = result.reason;
+    }
+
+    pushBusy.value = false;
+}
 
 const initial = (name) => (name ?? '?').trim().charAt(0).toUpperCase();
 
@@ -49,6 +86,7 @@ function onVisible() {
 }
 
 onMounted(() => {
+    checkPush();
     timer = setInterval(refresh, REFRESH_MS);
     document.addEventListener('visibilitychange', onVisible);
 });
@@ -62,10 +100,23 @@ onBeforeUnmount(() => {
 <template>
     <Head title="Chat"/>
     <FitLayout title="Chat">
+        <section v-if="needsPush" class="mb-3 flex items-center gap-3 rounded-[1.5rem] border border-aqua/25 bg-aqua/[0.06] p-4">
+            <BellAlertIcon class="size-6 shrink-0 text-aqua"/>
+            <div class="min-w-0 flex-1">
+                <p class="text-sm font-bold">Primește notificare la mesaje noi</p>
+                <p v-if="pushError" class="text-xs text-rose">{{ pushError }}</p>
+                <p v-else class="text-xs text-white/50">Altfel le vezi doar când deschizi aplicația.</p>
+            </div>
+            <button type="button" :disabled="pushBusy"
+                    class="h-10 shrink-0 rounded-xl bg-aqua px-4 text-sm font-extrabold text-ink active:scale-95 disabled:opacity-50"
+                    @click="turnOnPush">
+                Activează
+            </button>
+        </section>
         <label v-if="chats.length" class="relative block">
             <MagnifyingGlassIcon class="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-white/35"/>
             <input v-model="query" type="search" placeholder="Caută" autocomplete="off"
-                   class="h-11 w-full rounded-2xl border-0 bg-white/5 pl-11 pr-4 text-[15px] text-white placeholder:text-white/35 focus:ring-1 focus:ring-lime"/>
+                   class="h-11 w-full rounded-2xl border-0 bg-white/5 pl-11 pr-4 text-base text-white placeholder:text-white/35 focus:ring-1 focus:ring-lime"/>
         </label>
 
         <ul v-if="filtered.length" class="-mx-2 mt-2">

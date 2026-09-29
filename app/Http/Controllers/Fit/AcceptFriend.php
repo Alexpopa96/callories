@@ -19,7 +19,7 @@ class AcceptFriend extends Controller
         $friendship->update(['status' => 'accepted', 'accepted_at' => now()]);
 
         $requester = $friendship->user;
-        defer(fn () => $sender->send($requester, [
+        defer(fn () => $requester->notify_messages && $sender->send($requester, [
             'title' => 'Cerere acceptată',
             'body' => "{$user->name} ți-a acceptat cererea de prietenie.",
             'url' => '/friends',

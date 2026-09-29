@@ -45,7 +45,7 @@ class SendMessage extends Controller
         ]);
 
         // no push while they are looking at this very conversation
-        if (! Cache::has(ShowChat::openKey($friend, $me))) {
+        if ($friend->notify_messages && ! Cache::has(ShowChat::openKey($friend, $me))) {
             // the text stays out of the notification, so it never shows on a lock screen or passes through Apple/Google
             defer(fn () => $sender->send($friend, [
                 'title' => $me->name,

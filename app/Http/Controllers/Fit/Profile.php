@@ -38,6 +38,7 @@ class Profile extends Controller
             'apiKeyHint' => $user->anthropicKeyHint(),
             'aiModel' => $user->anthropicModel(),
             'aiModels' => Models::options(),
+            'notifyMessages' => (bool) $user->notify_messages,
             'pushKey' => config('services.webpush.public_key'),
             'canTestPush' => TestPush::allowed($user),
         ]);

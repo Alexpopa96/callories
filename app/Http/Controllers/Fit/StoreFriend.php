@@ -38,7 +38,7 @@ class StoreFriend extends Controller
         // they already asked us: adding their code simply accepts
         if ($existing) {
             $existing->update(['status' => 'accepted', 'accepted_at' => now()]);
-            defer(fn () => $sender->send($other, [
+            defer(fn () => $other->notify_messages && $sender->send($other, [
                 'title' => 'Cerere acceptată',
                 'body' => "{$user->name} ți-a acceptat cererea de prietenie.",
                 'url' => '/friends',
@@ -48,7 +48,7 @@ class StoreFriend extends Controller
         }
 
         Friendship::create(['user_id' => $user->id, 'friend_id' => $other->id]);
-        defer(fn () => $sender->send($other, [
+        defer(fn () => $other->notify_messages && $sender->send($other, [
             'title' => 'Cerere de prietenie',
             'body' => "{$user->name} vrea să fiți prieteni.",
             'url' => '/friends',

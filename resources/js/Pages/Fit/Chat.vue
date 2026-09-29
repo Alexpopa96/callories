@@ -1,9 +1,9 @@
 <script setup>
 import {computed, nextTick, onBeforeUnmount, onMounted, ref, watch} from 'vue';
 import axios from 'axios';
-import {Head, router} from '@inertiajs/vue3';
-import FitLayout from '@/Layouts/FitLayout.vue';
+import {Head, Link, router} from '@inertiajs/vue3';
 import BottomSheet from '@/Components/Fit/BottomSheet.vue';
+import {ChevronLeftIcon} from '@heroicons/vue/24/outline/index.js';
 import {PaperAirplaneIcon} from '@heroicons/vue/24/solid/index.js';
 
 const props = defineProps({
@@ -22,12 +22,32 @@ const error = ref('');
 
 const lastId = () => list.value.reduce((max, message) => (typeof message.id === 'number' ? Math.max(max, message.id) : max), 0);
 
-// scrolling: the page itself scrolls, the composer sits in the fixed footer
-const nearBottom = () => window.innerHeight + window.scrollY >= document.body.scrollHeight - 120;
+// layout: a fixed screen glued to the visible area, so opening the keyboard shrinks the message list
+// instead of letting iOS push the whole page (header included) upwards
+const scroller = ref(null);
+const screen = ref({top: 0, height: null});
+const keyboardOpen = computed(() => screen.value.height !== null && window.innerHeight - screen.value.height > 120);
+
+const nearBottom = () => {
+    const el = scroller.value;
+    return !el || el.scrollHeight - el.scrollTop - el.clientHeight < 120;
+};
 
 async function scrollToBottom() {
     await nextTick();
-    window.scrollTo({top: document.body.scrollHeight});
+    if (scroller.value) scroller.value.scrollTop = scroller.value.scrollHeight;
+}
+
+let wasAtBottom = true;
+
+function fitToViewport() {
+    const viewport = window.visualViewport;
+    wasAtBottom = nearBottom();
+    screen.value = viewport ? {top: viewport.offsetTop, height: viewport.height} : {top: 0, height: window.innerHeight};
+    // iOS may still scroll the document to reveal the text field; there is nothing to scroll to
+    if (window.scrollY !== 0) window.scrollTo(0, 0);
+    // like any messenger: when you were reading the latest messages, they stay just above the keyboard
+    if (wasAtBottom) scrollToBottom();
 }
 
 // polling while the chat is open and visible
@@ -67,13 +87,24 @@ function onVisible() {
 }
 
 onMounted(() => {
-    window.scrollTo({top: document.body.scrollHeight});
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
+    fitToViewport();
+    window.visualViewport?.addEventListener('resize', fitToViewport);
+    window.visualViewport?.addEventListener('scroll', fitToViewport);
+    window.addEventListener('resize', fitToViewport);
+    scrollToBottom();
     timer = setInterval(poll, POLL_MS);
     document.addEventListener('visibilitychange', onVisible);
     poll();
 });
 
 onBeforeUnmount(() => {
+    document.documentElement.style.overflow = '';
+    document.body.style.overflow = '';
+    window.visualViewport?.removeEventListener('resize', fitToViewport);
+    window.visualViewport?.removeEventListener('scroll', fitToViewport);
+    window.removeEventListener('resize', fitToViewport);
     clearInterval(timer);
     document.removeEventListener('visibilitychange', onVisible);
 });
@@ -86,7 +117,8 @@ async function loadOlder() {
     if (!first || loadingOlder.value) return;
     loadingOlder.value = true;
 
-    const heightBefore = document.body.scrollHeight;
+    const el = scroller.value;
+    const heightBefore = el.scrollHeight;
 
     try {
         const {data} = await axios.get(`/chat/${props.friend.id}/messages`, {params: {before: first.id}});
@@ -94,7 +126,7 @@ async function loadOlder() {
         more.value = data.hasMore;
         await nextTick();
         // keep the message you were looking at in place
-        window.scrollBy({top: document.body.scrollHeight - heightBefore});
+        el.scrollTop += el.scrollHeight - heightBefore;
     } finally {
         loadingOlder.value = false;
     }
@@ -206,8 +238,22 @@ function block() {
 
 <template>
     <Head :title="friend.name"/>
-    <FitLayout :title="friend.name" subtitle="Chat" back="/chats" hide-nav>
-        <div class="pb-4">
+    <div class="fixed inset-x-0 z-10 mx-auto flex max-w-md flex-col bg-ink text-white [-webkit-tap-highlight-color:transparent]"
+         :style="{top: `${screen.top}px`, height: screen.height ? `${screen.height}px` : '100dvh'}">
+        <header class="pt-safe shrink-0 border-b border-white/5 px-5">
+            <div class="flex items-center gap-3 py-3">
+                <Link href="/chats" aria-label="Înapoi"
+                      class="-ml-1 flex size-11 shrink-0 items-center justify-center rounded-full bg-white/5 text-white/80 active:scale-95">
+                    <ChevronLeftIcon class="size-5"/>
+                </Link>
+                <span class="flex size-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-lime to-aqua font-extrabold text-ink">
+                    {{ friend.name.trim().charAt(0).toUpperCase() }}
+                </span>
+                <h1 class="min-w-0 flex-1 truncate text-lg font-extrabold">{{ friend.name }}</h1>
+            </div>
+        </header>
+
+        <div ref="scroller" class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4">
             <div v-if="more" class="mb-3 flex justify-center">
                 <button type="button" :disabled="loadingOlder"
                         class="h-9 rounded-full bg-white/5 px-4 text-xs font-bold text-white/60 active:scale-95 disabled:opacity-50"
@@ -242,18 +288,18 @@ function block() {
             </template>
         </div>
 
-        <template #footer>
+        <footer class="shrink-0 border-t border-white/10 bg-panel/95 px-5 py-3" :class="{'pb-safe': !keyboardOpen}">
             <p v-if="error" class="mb-2 text-sm text-rose">{{ error }}</p>
             <form class="flex items-end gap-2" @submit.prevent="send">
                 <textarea v-model="draft" rows="1" maxlength="2000" placeholder="Scrie un mesaj…"
-                          class="max-h-32 min-h-12 flex-1 resize-none rounded-3xl border border-white/10 bg-white/5 px-4 py-3 text-[15px] text-white placeholder:text-white/30 [field-sizing:content] focus:border-lime focus:ring-0"
+                          class="max-h-32 min-h-12 flex-1 resize-none rounded-3xl border border-white/10 bg-white/5 px-4 py-3 text-base text-white placeholder:text-white/30 [field-sizing:content] focus:border-lime focus:ring-0"
                           @keydown="onKeydown"></textarea>
                 <button type="submit" aria-label="Trimite" :disabled="sending || !draft.trim()"
                         class="flex size-12 shrink-0 items-center justify-center rounded-full bg-lime text-ink active:scale-95 disabled:opacity-40">
                     <PaperAirplaneIcon class="size-5"/>
                 </button>
             </form>
-        </template>
+        </footer>
 
         <BottomSheet :open="!!selected" title="Mesaj" @close="selected = null">
             <template v-if="selected">
@@ -278,5 +324,5 @@ function block() {
                 <p class="mt-2 text-xs text-white/40">Rapoartele ajung la echipa aplicației. Blocarea încheie prietenia și conversația.</p>
             </template>
         </BottomSheet>
-    </FitLayout>
+    </div>
 </template>

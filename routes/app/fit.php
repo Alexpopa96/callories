@@ -54,6 +54,7 @@ use App\Http\Controllers\Fit\UpdateChallenge;
 use App\Http\Controllers\Fit\UpdateExercise;
 use App\Http\Controllers\Fit\UpdateGoals;
 use App\Http\Controllers\Fit\UpdateMeal;
+use App\Http\Controllers\Fit\UpdateMessageNotifications;
 use App\Http\Controllers\Fit\UpdateReminders;
 use App\Http\Controllers\Fit\UpdateSleep;
 use App\Http\Controllers\Fit\UpdateSteps;
@@ -130,6 +131,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('me/goals/adaptive/dismiss', DismissAdaptiveGoal::class)->name('fit.goals.adaptive.dismiss');
     Route::put('me/body', UpdateBody::class)->name('fit.body');
     Route::put('me/reminders', UpdateReminders::class)->name('fit.reminders');
+    Route::put('me/notify-messages', UpdateMessageNotifications::class)->name('fit.notifyMessages');
     Route::put('me/api-key', UpdateApiKey::class)->name('fit.apiKey');
     Route::delete('me/api-key', DestroyApiKey::class)->name('fit.apiKey.destroy');
     Route::put('me/ai-model', UpdateAiModel::class)->name('fit.aiModel');

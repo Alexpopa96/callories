@@ -265,4 +265,22 @@ class ChatTest extends TestCase
         $this->assertSame('vineri', ChatInbox::when(CarbonImmutable::parse('2026-09-25 10:00')));
         $this->assertSame('20.09.26', ChatInbox::when(CarbonImmutable::parse('2026-09-20 10:00')));
     }
+
+    public function test_turning_off_message_notifications_silences_chat_and_friend_pushes(): void
+    {
+        [$ana, $bogdan] = $this->friends();
+        $carmen = $this->user();
+
+        $this->actingAs($bogdan)->put('/me/notify-messages', ['enabled' => false])->assertRedirect();
+        $this->assertFalse($bogdan->fresh()->notify_messages);
+        $this->assertTrue($ana->fresh()->notify_messages);
+
+        $this->mock(PushSender::class, fn ($mock) => $mock->shouldNotReceive('send'));
+
+        $this->say($ana, $bogdan, 'fără notificare');
+        $this->actingAs($carmen)->post('/friends', ['code' => $bogdan->fresh()->friendCode()])->assertRedirect('/friends');
+
+        $this->actingAs($bogdan)->get('/chats')->assertInertia(fn ($page) => $page->where('notifyMessages', false));
+        $this->actingAs($bogdan)->get('/me')->assertInertia(fn ($page) => $page->where('notifyMessages', false));
+    }
 }

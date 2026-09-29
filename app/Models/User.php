@@ -55,6 +55,7 @@ class User extends Authenticatable
         'remind_water',
         'remind_calorie_limit',
         'remind_challenge',
+        'notify_messages',
     ];
 
     /**
@@ -94,6 +95,7 @@ class User extends Authenticatable
             'remind_water' => 'boolean',
             'remind_calorie_limit' => 'boolean',
             'remind_challenge' => 'boolean',
+            'notify_messages' => 'boolean',
             'anthropic_api_key' => 'encrypted',
         ];
     }

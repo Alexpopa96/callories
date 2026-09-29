@@ -26,6 +26,7 @@ const props = defineProps({
     suggestion: {type: Object, default: null},
     adaptiveSuggestion: {type: Object, default: null},
     reminders: Object,
+    notifyMessages: {type: Boolean, default: true},
     apiKeyHint: {type: String, default: null},
     aiModel: String,
     aiModels: Object,
@@ -147,7 +148,28 @@ async function setReminders(next) {
     remindersOn.value = next;
     router.put('/me/reminders', next, {preserveScroll: true});
 
-    if (!isNativeApp() && !next.meals && !next.water && !next.calorieLimit && !next.challenge) await disablePush();
+    if (!isNativeApp() && !next.meals && !next.water && !next.calorieLimit && !next.challenge && !notifyMessages.value) await disablePush();
+}
+
+// chat messages and friend requests: web push only, the native shell has no remote notifications
+const notifyMessages = ref(props.notifyMessages);
+
+async function setNotifyMessages(enabled) {
+    pushError.value = null;
+
+    if (enabled) {
+        const result = await enablePush(props.pushKey);
+        if (!result.ok) {
+            pushError.value = result.reason;
+            return;
+        }
+    }
+
+    notifyMessages.value = enabled;
+    router.put('/me/notify-messages', {enabled}, {preserveScroll: true});
+
+    const {meals, water, calorieLimit, challenge} = remindersOn.value;
+    if (!enabled && !meals && !water && !calorieLimit && !challenge) await disablePush();
 }
 
 const canPush = computed(() => isNativeApp() || (pushSupported() && !!props.pushKey));
@@ -366,6 +388,15 @@ const logout = () => router.post('/logout');
                 <input type="checkbox" :checked="remindersOn[item.key]" :disabled="!canPush"
                        class="mt-1 size-6 shrink-0 rounded-md border-white/20 bg-white/5 text-lime focus:ring-0 disabled:opacity-40"
                        @change="setReminders({...remindersOn, [item.key]: $event.target.checked})"/>
+            </label>
+            <label v-if="!isNativeApp()" class="flex items-start justify-between gap-4">
+                <span>
+                    <span class="block font-bold">Mesaje și prieteni</span>
+                    <span class="block text-xs text-white/45">Când primești un mesaj sau o cerere de prietenie</span>
+                </span>
+                <input type="checkbox" :checked="notifyMessages" :disabled="!canPush"
+                       class="mt-1 size-6 shrink-0 rounded-md border-white/20 bg-white/5 text-lime focus:ring-0 disabled:opacity-40"
+                       @change="setNotifyMessages($event.target.checked)"/>
             </label>
             <p v-if="!canPush" class="text-xs text-white/40">
                 {{ pushKey ? 'Browserul acesta nu suportă notificări. Pe iPhone, adaugă mai întâi aplicația pe ecranul principal.' : 'Notificările nu sunt configurate pe server.' }}

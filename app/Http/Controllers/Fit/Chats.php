@@ -18,6 +18,8 @@ class Chats extends Controller
         return Inertia::render('Fit/Chats', [
             'chats' => fn () => $inbox->conversations($user, $request->session()->has('impersonate')),
             // everyone you can start a conversation with, for the "new chat" sheet
+            'pushKey' => config('services.webpush.public_key'),
+            'notifyMessages' => (bool) $user->notify_messages,
             'friends' => fn () => User::whereIn('id', $user->friendIds())->orderBy('name')->get(['id', 'name'])
                 ->map(fn (User $friend) => ['userId' => $friend->id, 'name' => $friend->name]),
         ]);
