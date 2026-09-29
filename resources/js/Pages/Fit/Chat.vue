@@ -1,5 +1,5 @@
 <script setup>
-import {computed, nextTick, onBeforeUnmount, onMounted, ref} from 'vue';
+import {computed, nextTick, onBeforeUnmount, onMounted, ref, watch} from 'vue';
 import axios from 'axios';
 import {Head, router} from '@inertiajs/vue3';
 import FitLayout from '@/Layouts/FitLayout.vue';
@@ -50,6 +50,10 @@ async function poll() {
             list.value.push(...fresh);
             if (stick) scrollToBottom();
         }
+
+        // a send that looked failed turned out to be saved
+        const saved = pendingClientId && !sending.value && fresh.find((message) => message.clientId === pendingClientId);
+        if (saved) confirmSent(saved);
     } catch (e) {
         // unfriended or blocked meanwhile: the page itself explains it
         if (e.response?.status === 404) router.visit(`/chat/${props.friend.id}`);
@@ -96,23 +100,50 @@ async function loadOlder() {
     }
 }
 
-// sending
+// sending: the draft keeps its id until it is confirmed, so pressing send again after an error is a safe retry
+let pendingClientId = null;
+
+const newClientId = () => (crypto.randomUUID ? crypto.randomUUID()
+    : '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, (c) => (c ^ (crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (c / 4)))).toString(16)));
+
+// editing the text after a failed send makes it a different message
+watch(draft, () => {
+    if (!sending.value) pendingClientId = null;
+});
+
+function confirmSent(message) {
+    draft.value = '';
+    pendingClientId = null;
+    error.value = '';
+    if (!list.value.some((row) => row.id === message.id)) list.value.push(message);
+    scrollToBottom();
+}
+
 async function send() {
     const body = draft.value.trim();
     if (!body || sending.value) return;
 
     sending.value = true;
     error.value = '';
+    pendingClientId ??= newClientId();
+    const clientId = pendingClientId;
 
     try {
-        const {data} = await axios.post(`/chat/${props.friend.id}`, {body});
-        draft.value = '';
-        if (!list.value.some((message) => message.id === data.message.id)) list.value.push(data.message);
-        scrollToBottom();
+        const {data} = await axios.post(`/chat/${props.friend.id}`, {body, client_id: clientId});
+        confirmSent(data.message);
     } catch (e) {
-        error.value = e.response?.status === 429
-            ? 'Prea multe mesaje într-un minut. Mai așteaptă puțin.'
-            : (e.response?.data?.errors?.body?.[0] ?? 'Mesajul nu a putut fi trimis.');
+        // the message may have been saved even though the answer never arrived: check before complaining
+        await poll();
+        const saved = list.value.find((message) => message.clientId === clientId);
+
+        if (saved) {
+            confirmSent(saved);
+        } else {
+            const status = e.response?.status;
+            error.value = status === 429
+                ? 'Prea multe mesaje într-un minut. Mai așteaptă puțin.'
+                : (e.response?.data?.errors?.body?.[0] ?? `Mesajul nu a putut fi trimis${status ? ` (cod ${status})` : ' (fără conexiune)'}. Apasă din nou pentru a reîncerca.`);
+        }
     } finally {
         sending.value = false;
     }
@@ -175,7 +206,7 @@ function block() {
 
 <template>
     <Head :title="friend.name"/>
-    <FitLayout :title="friend.name" subtitle="Chat" back="/friends" hide-nav>
+    <FitLayout :title="friend.name" subtitle="Chat" back="/chats" hide-nav>
         <div class="pb-4">
             <div v-if="more" class="mb-3 flex justify-center">
                 <button type="button" :disabled="loadingOlder"

@@ -12,6 +12,7 @@ use App\Http\Controllers\Fit\AskWorkoutCoach;
 use App\Http\Controllers\Fit\Assistant;
 use App\Http\Controllers\Fit\BlockUser;
 use App\Http\Controllers\Fit\ChatMessages;
+use App\Http\Controllers\Fit\Chats;
 use App\Http\Controllers\Fit\DestroyAccount;
 use App\Http\Controllers\Fit\DestroyApiKey;
 use App\Http\Controllers\Fit\DestroyFavorite;
@@ -112,6 +113,8 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('friends/{friendship}', DestroyFriend::class)->name('fit.friends.destroy');
     Route::post('blocks/{user}', BlockUser::class)->name('fit.blocks.store');
     Route::delete('blocks/{user}', UnblockUser::class)->name('fit.blocks.destroy');
+
+    Route::get('chats', Chats::class)->name('fit.chats');
 
     Route::middleware(PrivateToImpersonators::class)->group(function () {
         Route::get('chat/{user}', ShowChat::class)->whereNumber('user')->name('fit.chat');

@@ -6,7 +6,9 @@ use App\Models\Friendship;
 use App\Models\Message;
 use App\Models\MessageReport;
 use App\Models\User;
+use App\Services\Fit\ChatInbox;
 use App\Services\Fit\PushSender;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -54,11 +56,12 @@ class ChatTest extends TestCase
         $this->say($ana, $bogdan, "  Salut!\nCe faci?  ");
 
         $this->assertSame(1, $bogdan->unreadMessagesCount());
-        $this->actingAs($bogdan)->get('/friends')->assertInertia(fn ($page) => $page
-            ->where('friends.0.unread', 1)
-            ->where('friends.0.lastMessage.body', "Salut!\nCe faci?")
-            ->where('friends.0.lastMessage.mine', false)
-            ->where('friendsBadge', 1));
+        $this->actingAs($bogdan)->get('/chats')->assertInertia(fn ($page) => $page
+            ->component('Fit/Chats')
+            ->where('chats.0.unread', 1)
+            ->where('chats.0.lastMessage.body', 'Salut! Ce faci?')
+            ->where('chats.0.lastMessage.mine', false)
+            ->where('social.unread', 1));
 
         $this->actingAs($bogdan)->get("/chat/{$ana->id}")->assertInertia(fn ($page) => $page
             ->component('Fit/Chat')
@@ -193,11 +196,73 @@ class ChatTest extends TestCase
         $this->actingAs($bogdan)->withSession($session)->getJson("/chat/{$ana->id}/messages")->assertForbidden();
         $this->actingAs($bogdan)->withSession($session)->postJson("/chat/{$ana->id}", ['body' => 'x'])->assertForbidden();
 
-        $this->actingAs($bogdan)->withSession($session)->get('/friends')
-            ->assertInertia(fn ($page) => $page->where('friends.0.lastMessage.body', '🔒 Mesaj privat'))
+        $this->actingAs($bogdan)->withSession($session)->get('/chats')
+            ->assertInertia(fn ($page) => $page->where('chats.0.lastMessage.body', '🔒 Mesaj privat'))
             ->assertDontSee('doar pentru tine');
 
         // nothing was marked read on Bogdan's behalf
         $this->assertSame(1, $bogdan->unreadMessagesCount());
+    }
+
+    public function test_retrying_a_send_with_the_same_client_id_does_not_duplicate_it(): void
+    {
+        [$ana, $bogdan] = $this->friends();
+        $clientId = '6f1c1b1e-2a4d-4c8e-9b7a-1d2e3f4a5b6c';
+
+        $first = $this->actingAs($ana)->postJson("/chat/{$bogdan->id}", ['body' => 'o dată', 'client_id' => $clientId])->assertCreated();
+        $retry = $this->actingAs($ana)->postJson("/chat/{$bogdan->id}", ['body' => 'o dată', 'client_id' => $clientId])->assertOk();
+
+        $this->assertSame($first->json('message.id'), $retry->json('message.id'));
+        $this->assertSame(1, Message::count());
+
+        // the sender can match its lost send while polling, the recipient never sees the id
+        $this->actingAs($ana)->getJson("/chat/{$bogdan->id}/messages?after=0")->assertJsonPath('messages.0.clientId', $clientId);
+        $this->actingAs($bogdan)->getJson("/chat/{$ana->id}/messages?after=0")->assertJsonPath('messages.0.clientId', null);
+
+        // the same id from another sender is a different message
+        $this->actingAs($bogdan)->postJson("/chat/{$ana->id}", ['body' => 'și eu', 'client_id' => $clientId])->assertCreated();
+        $this->assertSame(2, Message::count());
+    }
+
+    public function test_the_inbox_lists_conversations_newest_first_with_read_state(): void
+    {
+        [$ana, $bogdan] = $this->friends();
+        $carmen = $this->user(['name' => 'Carmen']);
+        $dan = $this->user(['name' => 'Dan']);
+        Friendship::create(['user_id' => $ana->id, 'friend_id' => $carmen->id, 'status' => 'accepted', 'accepted_at' => now()]);
+        Friendship::create(['user_id' => $dan->id, 'friend_id' => $ana->id, 'status' => 'accepted', 'accepted_at' => now()]);
+
+        $this->say($ana, $bogdan, 'către Bogdan');
+        $this->say($carmen, $ana, 'de la Carmen');
+        $this->actingAs($ana)->get("/chat/{$carmen->id}");
+        $this->say($ana, $carmen, 'răspuns pentru Carmen');
+        $this->actingAs($carmen)->get("/chat/{$ana->id}");
+
+        $this->actingAs($ana)->get('/chats')->assertInertia(fn ($page) => $page
+            ->has('chats', 2)
+            ->where('chats.0.name', 'Carmen')
+            ->where('chats.0.lastMessage.body', 'răspuns pentru Carmen')
+            ->where('chats.0.lastMessage.mine', true)
+            ->where('chats.0.lastMessage.read', true)
+            ->where('chats.0.unread', 0)
+            ->where('chats.1.name', 'Bogdan')
+            ->where('chats.1.lastMessage.read', false)
+            // Dan is a friend without messages: only in the "new chat" list
+            ->has('friends', 3)
+            ->where('friends.0.name', 'Bogdan'));
+
+        // an ended friendship closes the conversation and drops it from the inbox
+        Friendship::between($ana, $bogdan)->delete();
+        $this->actingAs($ana)->get('/chats')->assertInertia(fn ($page) => $page->has('chats', 1)->where('chats.0.name', 'Carmen'));
+    }
+
+    public function test_inbox_times_read_like_a_messenger(): void
+    {
+        $this->travelTo(CarbonImmutable::parse('2026-09-30 15:00'));
+
+        $this->assertSame('09:05', ChatInbox::when(now()->setTime(9, 5)));
+        $this->assertSame('Ieri', ChatInbox::when(now()->subDay()));
+        $this->assertSame('vineri', ChatInbox::when(CarbonImmutable::parse('2026-09-25 10:00')));
+        $this->assertSame('20.09.26', ChatInbox::when(CarbonImmutable::parse('2026-09-20 10:00')));
     }
 }

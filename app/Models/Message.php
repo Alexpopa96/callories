@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Message extends Model
 {
-    protected $fillable = ['sender_id', 'recipient_id', 'body', 'read_at'];
+    protected $fillable = ['sender_id', 'recipient_id', 'client_id', 'body', 'read_at'];
 
     protected function casts(): array
     {
@@ -37,11 +37,13 @@ class Message extends Model
             ->orWhere(fn ($q) => $q->where('sender_id', $b->id)->where('recipient_id', $a->id)));
     }
 
-    /** @return array{id: int, body: string, mine: bool, read: bool, time: string, day: string} */
+    /** @return array{id: int, clientId: ?string, body: string, mine: bool, read: bool, time: string, day: string} */
     public function toChatArray(User $viewer): array
     {
         return [
             'id' => $this->id,
+            // only the sender needs it, to match a send whose response got lost
+            'clientId' => $this->sender_id === $viewer->id ? $this->client_id : null,
             'body' => $this->body,
             'mine' => $this->sender_id === $viewer->id,
             'read' => $this->read_at !== null,

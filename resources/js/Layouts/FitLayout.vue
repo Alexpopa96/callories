@@ -5,8 +5,10 @@ import {
     ArrowPathIcon,
     CameraIcon,
     ChartBarIcon,
+    ChatBubbleOvalLeftEllipsisIcon,
     ChevronLeftIcon,
     HomeIcon,
+    UsersIcon,
 } from '@heroicons/vue/24/outline/index.js';
 
 const props = defineProps({
@@ -20,6 +22,7 @@ const props = defineProps({
 const page = usePage();
 const initial = computed(() => (page.props.auth?.user?.name ?? '?').trim().charAt(0).toUpperCase());
 const path = computed(() => page.url.split('?')[0]);
+const social = computed(() => page.props.social ?? {unread: 0, requests: 0});
 const scanHref = computed(() => (props.scanDate ? `/scan?date=${props.scanDate}` : '/scan'));
 
 const reloading = ref(false);
@@ -68,9 +71,8 @@ onBeforeUnmount(() => clearTimeout(timer));
                         <ArrowPathIcon class="size-5" :class="{'animate-spin': reloading}"/>
                     </button>
                     <Link href="/me" aria-label="Profil"
-                          class="relative flex size-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-lime to-aqua text-sm font-extrabold text-ink">
+                          class="flex size-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-lime to-aqua text-sm font-extrabold text-ink">
                         {{ initial }}
-                        <span v-if="page.props.friendsBadge" class="absolute -right-0.5 -top-0.5 size-3 rounded-full bg-rose ring-2 ring-ink"></span>
                     </Link>
                     </div>
                 </div>
@@ -101,11 +103,16 @@ onBeforeUnmount(() => clearTimeout(timer));
 
         <nav v-if="!hideNav" class="fixed inset-x-0 bottom-0 z-40 mx-auto max-w-md">
             <div class="pb-safe border-t border-white/10 bg-panel/90 backdrop-blur-xl">
-                <div class="grid h-16 grid-cols-3 items-center px-4">
+                <div class="grid h-16 grid-cols-5 items-center px-2">
                     <Link href="/today" class="flex flex-col items-center gap-0.5 text-[11px] font-semibold"
                           :class="path.startsWith('/today') ? 'text-lime' : 'text-white/45'">
                         <HomeIcon class="size-6"/>
                         Azi
+                    </Link>
+                    <Link href="/history" class="flex flex-col items-center gap-0.5 text-[11px] font-semibold"
+                          :class="path.startsWith('/history') ? 'text-lime' : 'text-white/45'">
+                        <ChartBarIcon class="size-6"/>
+                        Istoric
                     </Link>
                     <div class="flex justify-center">
                         <Link :href="scanHref" aria-label="Scanează masa"
@@ -113,10 +120,21 @@ onBeforeUnmount(() => clearTimeout(timer));
                             <CameraIcon class="size-7"/>
                         </Link>
                     </div>
-                    <Link href="/history" class="flex flex-col items-center gap-0.5 text-[11px] font-semibold"
-                          :class="path.startsWith('/history') ? 'text-lime' : 'text-white/45'">
-                        <ChartBarIcon class="size-6"/>
-                        Istoric
+                    <Link href="/chats" class="flex flex-col items-center gap-0.5 text-[11px] font-semibold"
+                          :class="path.startsWith('/chat') ? 'text-lime' : 'text-white/45'">
+                        <span class="relative">
+                            <ChatBubbleOvalLeftEllipsisIcon class="size-6"/>
+                            <span v-if="social.unread" class="absolute -right-2.5 -top-1.5 min-w-[18px] rounded-full bg-lime px-1 text-center text-[10px] font-extrabold leading-[18px] text-ink">{{ social.unread > 99 ? '99+' : social.unread }}</span>
+                        </span>
+                        Chat
+                    </Link>
+                    <Link href="/friends" class="flex flex-col items-center gap-0.5 text-[11px] font-semibold"
+                          :class="path.startsWith('/friends') ? 'text-lime' : 'text-white/45'">
+                        <span class="relative">
+                            <UsersIcon class="size-6"/>
+                            <span v-if="social.requests" class="absolute -right-2.5 -top-1.5 min-w-[18px] rounded-full bg-rose px-1 text-center text-[10px] font-extrabold leading-[18px] text-white">{{ social.requests }}</span>
+                        </span>
+                        Prieteni
                     </Link>
                 </div>
             </div>

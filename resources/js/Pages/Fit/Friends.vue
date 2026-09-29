@@ -112,7 +112,7 @@ function blockSelected() {
 
 <template>
     <Head title="Prieteni"/>
-    <FitLayout title="Prieteni" back="/me">
+    <FitLayout title="Prieteni">
         <section class="rounded-[2rem] border border-white/10 bg-gradient-to-b from-panel2 to-panel p-5">
             <p class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-lime">
                 <UsersIcon class="size-4"/> Codul tău
@@ -179,25 +179,15 @@ function blockSelected() {
         <section class="mt-4 rounded-[1.5rem] border border-white/10 bg-panel p-4">
             <p class="text-xs font-semibold uppercase tracking-wider text-white/50">Prieteni · {{ friends.length }}</p>
             <ul v-if="friends.length" class="mt-2 divide-y divide-white/5">
-                <li v-for="friend in friends" :key="friend.id" class="flex items-center gap-1 py-1">
-                    <Link :href="`/chat/${friend.userId}`" class="flex min-w-0 flex-1 items-center gap-3 rounded-xl py-1.5 active:bg-white/5">
-                        <span class="flex size-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-lime to-aqua font-extrabold text-ink">{{ initial(friend.name) }}</span>
-                        <div class="min-w-0 flex-1">
-                            <div class="flex items-baseline gap-2">
-                                <p class="min-w-0 flex-1 truncate font-bold">{{ friend.name }}</p>
-                                <span v-if="friend.lastMessage" class="shrink-0 text-[11px] text-white/40">{{ friend.lastMessage.when }}</span>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <p v-if="friend.lastMessage" class="min-w-0 flex-1 truncate text-xs"
-                                   :class="friend.unread ? 'font-bold text-white' : 'text-white/45'">
-                                    <template v-if="friend.lastMessage.mine">Tu: </template>{{ friend.lastMessage.body }}
-                                </p>
-                                <p v-else class="min-w-0 flex-1 truncate text-xs text-white/40">
-                                    <ChatBubbleLeftRightIcon class="inline size-3.5 align-[-2px]"/> Scrie-i un mesaj
-                                </p>
-                                <span v-if="friend.unread" class="shrink-0 rounded-full bg-lime px-1.5 text-[11px] font-extrabold text-ink">{{ friend.unread }}</span>
-                            </div>
-                        </div>
+                <li v-for="friend in friends" :key="friend.id" class="flex items-center gap-1 py-1.5">
+                    <span class="flex size-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-lime to-aqua font-extrabold text-ink">{{ initial(friend.name) }}</span>
+                    <div class="ml-2 min-w-0 flex-1">
+                        <p class="truncate font-bold">{{ friend.name }}</p>
+                        <p class="text-[11px] text-white/40">prieteni din {{ friend.since }}</p>
+                    </div>
+                    <Link :href="`/chat/${friend.userId}`" :aria-label="`Scrie-i lui ${friend.name}`"
+                          class="flex size-10 items-center justify-center rounded-xl text-lime active:bg-white/10">
+                        <ChatBubbleLeftRightIcon class="size-5"/>
                     </Link>
                     <button type="button" aria-label="Opțiuni"
                             class="flex size-10 items-center justify-center rounded-xl text-white/50 active:bg-white/10"

@@ -21,13 +21,28 @@ class SendMessage extends Controller
 
         $data = $request->validate([
             'body' => ['required', 'string', 'max:2000'],
+            'client_id' => ['nullable', 'uuid'],
         ], [
             'body.required' => 'Scrie un mesaj.',
             'body.max' => 'Mesajul poate avea maxim 2000 de caractere.',
         ]);
 
         $body = trim($data['body']);
-        $message = Message::create(['sender_id' => $me->id, 'recipient_id' => $friend->id, 'body' => $body]);
+        // a retry of a send that already went through returns the saved message instead of a copy
+        if (isset($data['client_id'])) {
+            $existing = Message::where('sender_id', $me->id)->where('client_id', $data['client_id'])->first();
+
+            if ($existing) {
+                return response()->json(['message' => $existing->toChatArray($me)]);
+            }
+        }
+
+        $message = Message::create([
+            'sender_id' => $me->id,
+            'recipient_id' => $friend->id,
+            'client_id' => $data['client_id'] ?? null,
+            'body' => $body,
+        ]);
 
         // no push while they are looking at this very conversation
         if (! Cache::has(ShowChat::openKey($friend, $me))) {
