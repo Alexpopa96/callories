@@ -22,27 +22,31 @@ const draft = ref('');
 
 const lastId = () => list.value.reduce((max, message) => (typeof message.id === 'number' ? Math.max(max, message.id) : max), 0);
 
-// layout: a fixed screen glued to the visible area, so opening the keyboard shrinks the message list
-// instead of letting iOS push the whole page (header included) upwards
+// layout: normally the whole page scrolls, like every other page, so mobile Safari can shrink its toolbar
+// and the input sits on the very bottom. While the keyboard is up the page becomes a fixed screen glued
+// to the visible area, so the keyboard shrinks the message list instead of pushing the header away.
 const scroller = ref(null);
 const screen = ref({top: 0, height: null, full: null});
 // the keyboard only exists while the text field has focus; the viewport height alone is not trusted
 // for this, WKWebView sometimes reports it too small with no keyboard at all
 const typing = ref(false);
 const keyboardOpen = computed(() => typing.value && screen.value.height !== null && screen.value.full - screen.value.height > 120);
-// keyboard closed: pinned to both edges, so the input always sits on the very bottom
 const screenStyle = computed(() => (keyboardOpen.value
     ? {top: `${screen.value.top}px`, height: `${screen.value.height}px`}
-    : {top: '0px', bottom: '0px'}));
+    : {}));
+
+/** Whatever scrolls the messages right now: the list on the fixed screen, the page otherwise. */
+const scrollEl = () => (keyboardOpen.value ? scroller.value : document.scrollingElement);
 
 const nearBottom = () => {
-    const el = scroller.value;
+    const el = scrollEl();
     return !el || el.scrollHeight - el.scrollTop - el.clientHeight < 120;
 };
 
 async function scrollToBottom() {
     await nextTick();
-    if (scroller.value) scroller.value.scrollTop = scroller.value.scrollHeight;
+    const el = scrollEl();
+    if (el) el.scrollTop = el.scrollHeight;
 }
 
 let wasAtBottom = true;
@@ -52,6 +56,7 @@ function fitToViewport() {
     wasAtBottom = nearBottom();
     const full = window.innerHeight;
     screen.value = viewport ? {top: viewport.offsetTop, height: viewport.height, full} : {top: 0, height: full, full};
+    if (!keyboardOpen.value) return;
     // iOS may still scroll the document to reveal the text field; there is nothing to scroll to
     if (window.scrollY !== 0) window.scrollTo(0, 0);
     // like any messenger: when you were reading the latest messages, they stay just above the keyboard
@@ -59,10 +64,22 @@ function fitToViewport() {
 }
 
 function onBlur() {
+    wasAtBottom = nearBottom();
     typing.value = false;
     // the viewport settles only after the keyboard has finished sliding away
     setTimeout(fitToViewport, 350);
 }
+
+const lockPage = (locked) => {
+    document.documentElement.style.overflow = locked ? 'hidden' : '';
+    document.body.style.overflow = locked ? 'hidden' : '';
+};
+
+// switching between the scrolling page and the fixed screen keeps you at the latest messages
+watch(keyboardOpen, (open) => {
+    lockPage(open);
+    if (wasAtBottom) scrollToBottom();
+});
 
 // updates: pushed over the websocket when it is up, polling every 4 s otherwise; with a live connection
 // a slow poll every 20 s still runs, which also tells the server the chat is open (no push meanwhile)
@@ -102,13 +119,13 @@ function onVisible() {
 }
 
 onMounted(() => {
-    document.documentElement.style.overflow = 'hidden';
-    document.body.style.overflow = 'hidden';
     fitToViewport();
     window.visualViewport?.addEventListener('resize', fitToViewport);
     window.visualViewport?.addEventListener('scroll', fitToViewport);
     window.addEventListener('resize', fitToViewport);
     scrollToBottom();
+    // Inertia resets the scroll to the top right after a visit; start at the latest messages anyway
+    setTimeout(scrollToBottom, 0);
     timer = setInterval(pollTick, POLL_MS);
     document.addEventListener('visibilitychange', onVisible);
     poll();
@@ -131,8 +148,7 @@ watch(realtimeConnected, (connected) => connected && poll());
 
 onBeforeUnmount(() => {
     unsubscribe.forEach((off) => off());
-    document.documentElement.style.overflow = '';
-    document.body.style.overflow = '';
+    lockPage(false);
     window.visualViewport?.removeEventListener('resize', fitToViewport);
     window.visualViewport?.removeEventListener('scroll', fitToViewport);
     window.removeEventListener('resize', fitToViewport);
@@ -148,7 +164,7 @@ async function loadOlder() {
     if (!first || loadingOlder.value) return;
     loadingOlder.value = true;
 
-    const el = scroller.value;
+    const el = scrollEl();
     const heightBefore = el.scrollHeight;
 
     try {
@@ -303,9 +319,10 @@ function block() {
 
 <template>
     <Head :title="friend.name"/>
-    <div class="fixed inset-x-0 z-10 mx-auto flex max-w-md flex-col bg-ink text-white [-webkit-tap-highlight-color:transparent]"
+    <div class="inset-x-0 z-10 mx-auto flex max-w-md flex-col bg-ink text-white [-webkit-tap-highlight-color:transparent]"
+         :class="keyboardOpen ? 'fixed' : 'relative min-h-[100dvh]'"
          :style="screenStyle">
-        <header class="pt-safe shrink-0 border-b border-white/5 px-5">
+        <header class="pt-safe sticky top-0 z-10 shrink-0 border-b border-white/5 bg-ink px-5">
             <div class="flex items-center gap-3 py-3">
                 <Link href="/chats" aria-label="Înapoi"
                       class="-ml-1 flex size-11 shrink-0 items-center justify-center rounded-full bg-white/5 text-white/80 active:scale-95">
@@ -318,7 +335,7 @@ function block() {
             </div>
         </header>
 
-        <div ref="scroller" class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4">
+        <div ref="scroller" class="flex-1 px-5 py-4" :class="{'min-h-0 overflow-y-auto overscroll-contain': keyboardOpen}">
             <div v-if="more" class="mb-3 flex justify-center">
                 <button type="button" :disabled="loadingOlder"
                         class="h-9 rounded-full bg-white/5 px-4 text-xs font-bold text-white/60 active:scale-95 disabled:opacity-50"
@@ -390,7 +407,7 @@ function block() {
             </template>
         </div>
 
-        <footer class="shrink-0 border-t border-white/10 bg-panel/95 px-5 py-3" :class="{'pb-safe': !keyboardOpen}">
+        <footer class="sticky bottom-0 z-10 shrink-0 border-t border-white/10 bg-panel/95 px-5 py-3" :class="{'pb-safe': !keyboardOpen}">
             <form class="flex items-end gap-2" @submit.prevent="send">
                 <textarea v-model="draft" rows="1" maxlength="2000" placeholder="Scrie un mesaj…"
                           class="max-h-32 min-h-12 flex-1 resize-none rounded-3xl border border-white/10 bg-white/5 px-4 py-3 text-base text-white placeholder:text-white/30 [field-sizing:content] focus:border-lime focus:ring-0"

@@ -18,6 +18,20 @@ listenForNotificationTaps();
 // Hide the ˄ ˅ ✓ bar iOS shows above the keyboard in web views.
 if (isNativeApp()) Keyboard.setAccessoryBarVisible({ isVisible: false });
 
+// Double tap / double click should do nothing: no zoom, no word selection.
+const isField = (el) => el?.closest?.('input, textarea, select, [contenteditable="true"]');
+let lastTouchEnd = 0;
+document.addEventListener('touchend', (e) => {
+    const now = Date.now();
+    if (now - lastTouchEnd < 300 && !isField(e.target)) e.preventDefault();
+    lastTouchEnd = now;
+}, { passive: false });
+document.addEventListener('dblclick', (e) => {
+    if (!isField(e.target)) e.preventDefault();
+});
+['gesturestart', 'gesturechange'].forEach((type) =>
+    document.addEventListener(type, (e) => e.preventDefault(), { passive: false }));
+
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
 createInertiaApp({
