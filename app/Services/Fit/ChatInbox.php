@@ -47,7 +47,7 @@ class ChatInbox
                     'unread' => (int) ($unreadByFriend[$friendId] ?? 0),
                     'lastMessage' => [
                         'id' => $last->id,
-                        'body' => $hideText ? '🔒 Mesaj privat' : Str::limit(preg_replace('/\s+/', ' ', $last->body), 80),
+                        'body' => $hideText ? '🔒 Mesaj privat' : Str::limit(preg_replace('/\s+/', ' ', $last->preview()), 80),
                         'mine' => $last->sender_id === $user->id,
                         'read' => $last->read_at !== null,
                         'when' => self::when($last->created_at),

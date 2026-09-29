@@ -1,6 +1,7 @@
 <script setup>
 import {computed, onBeforeUnmount, ref} from 'vue';
-import {Head, useForm} from '@inertiajs/vue3';
+import axios from 'axios';
+import {Head, router, useForm} from '@inertiajs/vue3';
 import BottomSheet from '@/Components/Fit/BottomSheet.vue';
 import FitLayout from '@/Layouts/FitLayout.vue';
 import MealItemsEditor from '@/Components/Fit/MealItemsEditor.vue';
@@ -8,11 +9,12 @@ import MealRemark from '@/Components/Fit/MealRemark.vue';
 import PhotoViewer from '@/Components/Fit/PhotoViewer.vue';
 import {useMealItems} from '@/Composables/useMealItems.js';
 import {shrinkImage} from '@/Composables/shrinkImage.js';
-import {CameraIcon, PencilIcon, PhotoIcon, TrashIcon} from '@heroicons/vue/24/outline/index.js';
+import {CameraIcon, PaperAirplaneIcon, PencilIcon, PhotoIcon, TrashIcon} from '@heroicons/vue/24/outline/index.js';
 
 const props = defineProps({
     meal: Object,
     dateLabel: String,
+    friends: Array,
 });
 
 const list = useMealItems(props.meal.items);
@@ -83,6 +85,25 @@ function removePhotoAndSave() {
 function undoPhotoChange() {
     clearNewPhoto();
     removePhoto.value = false;
+}
+
+// sending the meal to a friend: the chat gets the saved numbers and foods, never the photo
+const shareOpen = ref(false);
+const sharingTo = ref(null);
+const shareError = ref(null);
+const unsaved = computed(() => title.value !== props.meal.title || list.totals.value.calories !== props.meal.calories);
+
+async function shareWith(friend) {
+    sharingTo.value = friend.id;
+    shareError.value = null;
+
+    try {
+        await axios.post(`/chat/${friend.id}`, {meal_id: props.meal.id, client_id: crypto.randomUUID?.() ?? null});
+        router.visit(`/chat/${friend.id}`);
+    } catch (e) {
+        shareError.value = e.response?.status === 429 ? 'Prea multe mesaje într-un minut.' : 'Nu s-a putut trimite. Încearcă din nou.';
+        sharingTo.value = null;
+    }
 }
 
 const form = useForm({title: props.meal.title, items: [], notes: null, photo: null, remove_photo: false});
@@ -197,6 +218,30 @@ function save() {
                 P {{ list.totals.value.protein }} · C {{ list.totals.value.carbs }} · G {{ list.totals.value.fat }} · F {{ list.totals.value.fiber }}
             </p>
         </div>
+
+        <button v-if="friends.length" type="button"
+                class="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-white/5 text-sm font-bold text-white/80 active:scale-[0.98]"
+                @click="shareOpen = true">
+            <PaperAirplaneIcon class="size-4"/> Trimite unui prieten
+        </button>
+        <BottomSheet :open="shareOpen" title="Trimite masa" @close="shareOpen = false">
+            <p class="text-sm text-white/65">Prietenul vede caloriile, macronutrienții și alimentele. Poza nu se trimite.</p>
+            <p v-if="unsaved" class="mt-2 text-sm text-sun">Ai modificări nesalvate: se trimite varianta salvată.</p>
+            <ul class="mt-4 space-y-2">
+                <li v-for="friend in friends" :key="friend.id">
+                    <button type="button" :disabled="sharingTo !== null"
+                            class="flex h-14 w-full items-center gap-3 rounded-2xl bg-white/5 px-4 text-left font-bold text-white active:scale-[0.98] disabled:opacity-50"
+                            @click="shareWith(friend)">
+                        <span class="flex size-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-lime to-aqua text-sm font-extrabold text-ink">
+                            {{ friend.name.trim().charAt(0).toUpperCase() }}
+                        </span>
+                        <span class="min-w-0 flex-1 truncate">{{ friend.name }}</span>
+                        <span v-if="sharingTo === friend.id" class="text-xs font-semibold text-white/50">Se trimite…</span>
+                    </button>
+                </li>
+            </ul>
+            <p v-if="shareError" class="mt-3 text-sm text-rose">{{ shareError }}</p>
+        </BottomSheet>
 
         <h2 class="mb-2 mt-5 text-sm font-bold uppercase tracking-wider text-white/50">Alimente</h2>
         <p v-if="!list.items.value.length" class="rounded-2xl border border-dashed border-white/15 p-5 text-center text-sm text-white/50">

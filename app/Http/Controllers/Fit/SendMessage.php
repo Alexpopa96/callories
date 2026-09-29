@@ -24,14 +24,18 @@ class SendMessage extends Controller
         abort_unless($friend && $me->isFriendsWith($friend), 404);
 
         $data = $request->validate([
-            'body' => ['required', 'string', 'max:2000'],
+            'body' => ['required_without:meal_id', 'nullable', 'string', 'max:2000'],
+            'meal_id' => ['nullable', 'integer'],
             'client_id' => ['nullable', 'uuid'],
         ], [
-            'body.required' => 'Scrie un mesaj.',
+            'body.required_without' => 'Scrie un mesaj.',
             'body.max' => 'Mesajul poate avea maxim 2000 de caractere.',
         ]);
 
-        $body = trim($data['body']);
+        $body = trim($data['body'] ?? '');
+        // only your own meals can be shared
+        $meal = isset($data['meal_id']) ? $me->meals()->findOrFail($data['meal_id']) : null;
+
         // a retry of a send that already went through returns the saved message instead of a copy
         if (isset($data['client_id'])) {
             $existing = Message::where('sender_id', $me->id)->where('client_id', $data['client_id'])->first();
@@ -46,6 +50,7 @@ class SendMessage extends Controller
             'recipient_id' => $friend->id,
             'client_id' => $data['client_id'] ?? null,
             'body' => $body,
+            'meal' => $meal ? Message::mealSnapshot($meal) : null,
         ]);
 
         Realtime::broadcast(new MessageSent($message));
@@ -55,7 +60,7 @@ class SendMessage extends Controller
             // the text stays out of the notification, so it never shows on a lock screen or passes through Apple/Google
             defer(fn () => $sender->send($friend, [
                 'title' => $me->name,
-                'body' => 'Ți-a trimis un mesaj.',
+                'body' => $meal ? 'Ți-a trimis o masă.' : 'Ți-a trimis un mesaj.',
                 'url' => "/chat/{$me->id}",
             ]));
         }

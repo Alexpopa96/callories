@@ -250,6 +250,14 @@ const rows = computed(() => list.value.map((message, index) => ({
     grouped: index > 0 && list.value[index - 1].mine === message.mine && list.value[index - 1].day === message.day,
 })));
 
+// shared meals
+const macros = (meal) => [
+    {label: 'Prot', value: meal.protein},
+    {label: 'Carb', value: meal.carbs},
+    {label: 'Grăs', value: meal.fat},
+    {label: 'Fibre', value: meal.fiber},
+];
+
 // report and block
 const selected = ref(null);
 const reportReason = ref('');
@@ -323,7 +331,29 @@ function block() {
                                 message.status === 'failed' ? 'opacity-60' : '',
                             ]"
                             @click="message.mine ? retry(message) : openMessage(message)">
-                        <span class="whitespace-pre-wrap break-words text-[15px] leading-snug">{{ message.body }}</span>
+                        <span v-if="message.meal" class="block min-w-52 pb-1 pt-1">
+                            <span class="block text-[11px] font-semibold uppercase tracking-wider opacity-60">🍽️ Masă</span>
+                            <span class="mt-1 block font-extrabold leading-tight">{{ message.meal.title }}</span>
+                            <span class="mt-1 block text-2xl font-extrabold leading-none">
+                                {{ message.meal.calories.toLocaleString('ro-RO') }} <span class="text-sm font-semibold opacity-60">kcal</span>
+                                <span v-if="message.meal.grams" class="text-sm font-semibold opacity-60">· {{ message.meal.grams.toLocaleString('ro-RO') }} g</span>
+                            </span>
+                            <span class="mt-2 grid grid-cols-4 gap-1 text-center">
+                                <span v-for="macro in macros(message.meal)" :key="macro.label"
+                                      class="rounded-xl py-1" :class="message.mine ? 'bg-ink/10' : 'bg-white/5'">
+                                    <span class="block text-sm font-extrabold leading-tight">{{ macro.value }}<span class="text-[10px] font-semibold">g</span></span>
+                                    <span class="block text-[10px] font-semibold uppercase opacity-60">{{ macro.label }}</span>
+                                </span>
+                            </span>
+                            <span v-if="message.meal.items.length" class="mt-2 block space-y-0.5 text-[13px] leading-snug">
+                                <span v-for="(item, index) in message.meal.items.slice(0, 8)" :key="index" class="flex gap-2">
+                                    <span class="min-w-0 flex-1 truncate">{{ item.name }} <span class="opacity-50">{{ item.grams }} g</span></span>
+                                    <span class="shrink-0 font-semibold opacity-70">{{ item.calories }} kcal</span>
+                                </span>
+                                <span v-if="message.meal.items.length > 8" class="block opacity-50">și încă {{ message.meal.items.length - 8 }}</span>
+                            </span>
+                        </span>
+                        <span v-if="message.body" class="whitespace-pre-wrap break-words text-[15px] leading-snug">{{ message.body }}</span>
                         <span class="ml-2 inline-flex translate-y-0.5 items-center gap-0.5 text-[10px] font-semibold"
                               :class="message.mine ? 'text-ink/50' : 'text-white/35'">
                             {{ message.time }}
@@ -361,7 +391,7 @@ function block() {
 
         <BottomSheet :open="!!selected" title="Mesaj" @close="selected = null">
             <template v-if="selected">
-                <p class="line-clamp-4 rounded-2xl bg-white/5 p-3 text-sm text-white/70">{{ selected.body }}</p>
+                <p class="line-clamp-4 rounded-2xl bg-white/5 p-3 text-sm text-white/70">{{ selected.meal ? `🍽️ ${selected.meal.title} · ${selected.meal.calories} kcal` : '' }} {{ selected.body }}</p>
                 <template v-if="!reported.has(selected.id)">
                     <label class="mt-4 block">
                         <span class="text-xs font-semibold uppercase tracking-wider text-white/50">Motiv (opțional)</span>

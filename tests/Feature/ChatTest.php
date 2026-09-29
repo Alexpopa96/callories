@@ -283,4 +283,48 @@ class ChatTest extends TestCase
         $this->actingAs($bogdan)->get('/chats')->assertInertia(fn ($page) => $page->where('notifyMessages', false));
         $this->actingAs($bogdan)->get('/me')->assertInertia(fn ($page) => $page->where('notifyMessages', false));
     }
+
+    public function test_a_meal_is_shared_as_numbers_and_foods_without_the_photo(): void
+    {
+        [$ana, $bogdan] = $this->friends();
+        $meal = $ana->meals()->create([
+            'eaten_on' => now()->toDateString(), 'title' => 'Omletă', 'photo_path' => 'meals/secret.jpg', 'notes' => 'notițe private',
+            'items' => [['name' => 'Ouă', 'portion_grams' => 120, 'calories' => 180, 'protein_g' => 15, 'carbs_g' => 1, 'fat_g' => 12, 'fiber_g' => 0, 'image_url' => 'https://img.example/egg.jpg']],
+            'calories' => 180, 'protein_g' => 15, 'carbs_g' => 1, 'fat_g' => 12, 'fiber_g' => 0,
+        ]);
+
+        $this->actingAs($bogdan)->get("/meals/{$meal->id}/edit")->assertNotFound();
+        $this->actingAs($ana)->get("/meals/{$meal->id}/edit")->assertInertia(fn ($page) => $page->where('friends.0.name', 'Bogdan'));
+
+        $this->actingAs($ana)->postJson("/chat/{$bogdan->id}", ['meal_id' => $meal->id])->assertCreated();
+
+        // later edits or deleting the meal do not change what was sent
+        $meal->update(['title' => 'Altceva', 'calories' => 999]);
+
+        $page = $this->actingAs($bogdan)->get("/chat/{$ana->id}")->assertInertia(fn ($page) => $page
+            ->where('messages.0.body', '')
+            ->where('messages.0.meal.title', 'Omletă')
+            ->where('messages.0.meal.calories', 180)
+            ->where('messages.0.meal.grams', 120)
+            ->missing('messages.0.meal.date')
+            ->where('messages.0.meal.protein', 15)
+            ->where('messages.0.meal.items.0', ['name' => 'Ouă', 'grams' => 120, 'calories' => 180]));
+        $json = json_encode($page->viewData('page')['props']['messages']);
+        $this->assertStringNotContainsString('secret.jpg', $json);
+        $this->assertStringNotContainsString('egg.jpg', $json);
+        $this->assertStringNotContainsString('private', $json);
+
+        $this->actingAs($bogdan)->get('/chats')->assertInertia(fn ($page) => $page->where('chats.0.lastMessage.body', '🍽️ Omletă · 180 kcal'));
+        $this->assertStringNotContainsString('Omlet', DB::table('messages')->value('meal'));
+    }
+
+    public function test_only_your_own_meals_can_be_shared(): void
+    {
+        [$ana, $bogdan] = $this->friends();
+        $meal = $bogdan->meals()->create(['eaten_on' => now()->toDateString(), 'title' => 'A lui Bogdan', 'items' => [], 'calories' => 100]);
+
+        $this->actingAs($ana)->postJson("/chat/{$bogdan->id}", ['meal_id' => $meal->id])->assertNotFound();
+        $this->actingAs($ana)->postJson("/chat/{$bogdan->id}", [])->assertJsonValidationErrors('body');
+        $this->assertSame(0, Message::count());
+    }
 }

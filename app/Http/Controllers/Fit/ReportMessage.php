@@ -26,7 +26,7 @@ class ReportMessage extends Controller
 
         $report = MessageReport::firstOrCreate(
             ['reporter_id' => $me->id, 'message_id' => $message->id],
-            ['body' => $message->body, 'reason' => $data['reason'] ?? null],
+            ['body' => $message->preview(), 'reason' => $data['reason'] ?? null],
         );
 
         if ($report->wasRecentlyCreated) {
