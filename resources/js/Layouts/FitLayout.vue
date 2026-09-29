@@ -53,8 +53,9 @@ onBeforeUnmount(() => clearTimeout(timer));
                         </div>
                     </div>
                     <Link href="/me" aria-label="Profil"
-                          class="flex size-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-lime to-aqua text-sm font-extrabold text-ink">
+                          class="relative flex size-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-lime to-aqua text-sm font-extrabold text-ink">
                         {{ initial }}
+                        <span v-if="page.props.friendsBadge" class="absolute -right-0.5 -top-0.5 size-3 rounded-full bg-rose ring-2 ring-ink"></span>
                     </Link>
                 </div>
             </header>

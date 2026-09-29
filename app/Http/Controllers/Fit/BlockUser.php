@@ -21,6 +21,7 @@ class BlockUser extends Controller
         $friendship->delete();
         $me->blocks()->firstOrCreate(['blocked_id' => $other->id]);
 
-        return back()->with('success', "{$other->name} a fost blocat.");
+        // also used from inside the chat, which no longer exists after blocking
+        return redirect('/friends')->with('success', "{$other->name} a fost blocat.");
     }
 }

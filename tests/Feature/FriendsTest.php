@@ -154,6 +154,6 @@ class FriendsTest extends TestCase
         $this->sendRequest($this->user(), $ana);
         $this->sendRequest($this->user(), $ana);
 
-        $this->actingAs($ana)->get('/me')->assertInertia(fn ($page) => $page->where('friendRequests', 2));
+        $this->actingAs($ana)->get('/me')->assertInertia(fn ($page) => $page->where('friendsBadge', 2));
     }
 }

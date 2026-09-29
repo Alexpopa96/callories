@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Fit;
 
 use App\Http\Controllers\Controller;
-use App\Models\Friendship;
 use App\Services\Anthropic\Models;
 use App\Services\Fit\GoalCalculator;
 use Illuminate\Http\Request;
@@ -19,7 +18,6 @@ class Profile extends Controller
 
         return Inertia::render('Fit/Profile', [
             'goals' => $user->goals(),
-            'friendRequests' => Friendship::where('friend_id', $user->id)->where('status', 'pending')->count(),
             'canAdmin' => $user->can('view dashboard'),
             'body' => [
                 'sex' => $user->sex,

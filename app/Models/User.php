@@ -19,11 +19,11 @@ use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable
 {
     use HasApiTokens;
+
     /** @use HasFactory<UserFactory> */
     use HasFactory;
 
     use HasProfilePhoto;
-
     use HasRoles;
     use Notifiable;
     use TwoFactorAuthenticatable;
@@ -217,6 +217,16 @@ class User extends Authenticatable
             ->get(['user_id', 'friend_id'])
             ->map(fn (Friendship $friendship) => $friendship->user_id === $this->id ? $friendship->friend_id : $friendship->user_id)
             ->all();
+    }
+
+    public function isFriendsWith(User $other): bool
+    {
+        return Friendship::between($this, $other)->where('status', 'accepted')->exists();
+    }
+
+    public function unreadMessagesCount(): int
+    {
+        return Message::where('recipient_id', $this->id)->whereNull('read_at')->count();
     }
 
     public function blockedEitherWay(User $other): bool

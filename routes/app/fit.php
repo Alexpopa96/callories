@@ -11,6 +11,7 @@ use App\Http\Controllers\Fit\AskAssistant;
 use App\Http\Controllers\Fit\AskWorkoutCoach;
 use App\Http\Controllers\Fit\Assistant;
 use App\Http\Controllers\Fit\BlockUser;
+use App\Http\Controllers\Fit\ChatMessages;
 use App\Http\Controllers\Fit\DestroyAccount;
 use App\Http\Controllers\Fit\DestroyApiKey;
 use App\Http\Controllers\Fit\DestroyFavorite;
@@ -28,8 +29,11 @@ use App\Http\Controllers\Fit\LookupBarcode;
 use App\Http\Controllers\Fit\Profile;
 use App\Http\Controllers\Fit\RefineMeal;
 use App\Http\Controllers\Fit\RegenerateFriendCode;
+use App\Http\Controllers\Fit\ReportMessage;
 use App\Http\Controllers\Fit\Scan;
+use App\Http\Controllers\Fit\SendMessage;
 use App\Http\Controllers\Fit\ShowChallenge;
+use App\Http\Controllers\Fit\ShowChat;
 use App\Http\Controllers\Fit\ShowWorkout;
 use App\Http\Controllers\Fit\StoreChallenge;
 use App\Http\Controllers\Fit\StoreCustomBarcode;
@@ -55,6 +59,7 @@ use App\Http\Controllers\Fit\UpdateSteps;
 use App\Http\Controllers\Fit\UpdateWater;
 use App\Http\Controllers\Fit\Weight;
 use App\Http\Middleware\EnsureAnthropicKey;
+use App\Http\Middleware\PrivateToImpersonators;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth'])->group(function () {
@@ -107,6 +112,13 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('friends/{friendship}', DestroyFriend::class)->name('fit.friends.destroy');
     Route::post('blocks/{user}', BlockUser::class)->name('fit.blocks.store');
     Route::delete('blocks/{user}', UnblockUser::class)->name('fit.blocks.destroy');
+
+    Route::middleware(PrivateToImpersonators::class)->group(function () {
+        Route::get('chat/{user}', ShowChat::class)->whereNumber('user')->name('fit.chat');
+        Route::get('chat/{user}/messages', ChatMessages::class)->whereNumber('user')->name('fit.chat.messages');
+        Route::post('chat/{user}', SendMessage::class)->whereNumber('user')->middleware('throttle:30,1')->name('fit.chat.send');
+        Route::post('chat/messages/{message}/report', ReportMessage::class)->middleware('throttle:10,1')->name('fit.chat.report');
+    });
 
     Route::get('me', Profile::class)->name('fit.profile');
     Route::put('me/goals', UpdateGoals::class)->name('fit.goals');

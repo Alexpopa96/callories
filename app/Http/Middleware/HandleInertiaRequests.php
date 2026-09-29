@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Friendship;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
@@ -65,8 +66,12 @@ class HandleInertiaRequests extends Middleware
                     'success' => Session::get('success'),
                 ];
             },
+            // pending friend requests plus unread chat messages, for the dot on the avatar
+            'friendsBadge' => fn () => $user
+                ? Friendship::where('friend_id', $user->id)->where('status', 'pending')->count() + $user->unreadMessagesCount()
+                : 0,
             'impersonate' => Session::get('impersonate'),
-            'role_id' => Auth::user() ? Auth::user()->roles()->first()?->id : null
+            'role_id' => Auth::user() ? Auth::user()->roles()->first()?->id : null,
         ];
     }
 }

@@ -1,11 +1,12 @@
 <script setup>
 import {ref} from 'vue';
-import {Head, router, useForm} from '@inertiajs/vue3';
+import {Head, Link, router, useForm} from '@inertiajs/vue3';
 import FitLayout from '@/Layouts/FitLayout.vue';
 import BottomSheet from '@/Components/Fit/BottomSheet.vue';
 import Section from '@/Components/Fit/Section.vue';
 import {
     ArrowPathIcon,
+    ChatBubbleLeftRightIcon,
     EllipsisHorizontalIcon,
     LinkIcon,
     NoSymbolIcon,
@@ -178,12 +179,26 @@ function blockSelected() {
         <section class="mt-4 rounded-[1.5rem] border border-white/10 bg-panel p-4">
             <p class="text-xs font-semibold uppercase tracking-wider text-white/50">Prieteni · {{ friends.length }}</p>
             <ul v-if="friends.length" class="mt-2 divide-y divide-white/5">
-                <li v-for="friend in friends" :key="friend.id" class="flex items-center gap-3 py-2.5">
-                    <span class="flex size-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-lime to-aqua font-extrabold text-ink">{{ initial(friend.name) }}</span>
-                    <div class="min-w-0 flex-1">
-                        <p class="truncate font-bold">{{ friend.name }}</p>
-                        <p class="text-[11px] text-white/40">prieteni din {{ friend.since }}</p>
-                    </div>
+                <li v-for="friend in friends" :key="friend.id" class="flex items-center gap-1 py-1">
+                    <Link :href="`/chat/${friend.userId}`" class="flex min-w-0 flex-1 items-center gap-3 rounded-xl py-1.5 active:bg-white/5">
+                        <span class="flex size-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-lime to-aqua font-extrabold text-ink">{{ initial(friend.name) }}</span>
+                        <div class="min-w-0 flex-1">
+                            <div class="flex items-baseline gap-2">
+                                <p class="min-w-0 flex-1 truncate font-bold">{{ friend.name }}</p>
+                                <span v-if="friend.lastMessage" class="shrink-0 text-[11px] text-white/40">{{ friend.lastMessage.when }}</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <p v-if="friend.lastMessage" class="min-w-0 flex-1 truncate text-xs"
+                                   :class="friend.unread ? 'font-bold text-white' : 'text-white/45'">
+                                    <template v-if="friend.lastMessage.mine">Tu: </template>{{ friend.lastMessage.body }}
+                                </p>
+                                <p v-else class="min-w-0 flex-1 truncate text-xs text-white/40">
+                                    <ChatBubbleLeftRightIcon class="inline size-3.5 align-[-2px]"/> Scrie-i un mesaj
+                                </p>
+                                <span v-if="friend.unread" class="shrink-0 rounded-full bg-lime px-1.5 text-[11px] font-extrabold text-ink">{{ friend.unread }}</span>
+                            </div>
+                        </div>
+                    </Link>
                     <button type="button" aria-label="Opțiuni"
                             class="flex size-10 items-center justify-center rounded-xl text-white/50 active:bg-white/10"
                             @click="openFriend(friend)">

@@ -2,24 +2,36 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
+use App\Models\User;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Redirect;
+use Illuminate\Support\Facades\Session;
 
 class Impersonate extends Controller
 {
-    public function impersonate($id) {
-        Session::put('impersonate', Auth::user()->id);
+    public function impersonate($id)
+    {
+        /** @var User $admin */
+        $admin = Auth::user();
+        $target = User::findOrFail($id);
 
-        Auth::loginUsingId($id);
+        // only admins who can edit users, never into yourself, another admin, or from inside an impersonation
+        abort_unless($admin->can('edit user'), 403);
+        abort_if(Session::has('impersonate') || $target->is($admin) || $target->can('view administration'), 403);
+
+        Session::put('impersonate', $admin->id);
+
+        Auth::login($target);
 
         return Redirect::to('/dashboard');
     }
 
-    public function exitImpersonate() {
-        Auth::loginUsingId(Session::get('impersonate'));
-        Session::forget('impersonate');
+    public function exitImpersonate()
+    {
+        abort_unless(Session::has('impersonate'), 403);
+
+        Auth::loginUsingId(Session::pull('impersonate'));
+
         return Redirect::to('/administration/users');
     }
 }
