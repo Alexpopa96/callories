@@ -11,6 +11,12 @@
     }
 }
 
+/* Block double-tap zoom everywhere. */
+html,
+body {
+    touch-action: manipulation;
+}
+
 [x-cloak] {
     display: none;
 }

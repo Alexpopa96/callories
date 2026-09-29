@@ -25,8 +25,13 @@ const lastId = () => list.value.reduce((max, message) => (typeof message.id === 
 // layout: a fixed screen glued to the visible area, so opening the keyboard shrinks the message list
 // instead of letting iOS push the whole page (header included) upwards
 const scroller = ref(null);
-const screen = ref({top: 0, height: null});
-const keyboardOpen = computed(() => screen.value.height !== null && window.innerHeight - screen.value.height > 120);
+const screen = ref({top: 0, height: null, full: null});
+const keyboardOpen = computed(() => screen.value.height !== null && screen.value.full - screen.value.height > 120);
+// keyboard closed: pinned to both edges, so the input always sits on the very bottom even when the
+// measured viewport height is stale (WKWebView reports it wrong after the keyboard hides)
+const screenStyle = computed(() => (keyboardOpen.value
+    ? {top: `${screen.value.top}px`, height: `${screen.value.height}px`}
+    : {top: '0px', bottom: '0px'}));
 
 const nearBottom = () => {
     const el = scroller.value;
@@ -43,7 +48,8 @@ let wasAtBottom = true;
 function fitToViewport() {
     const viewport = window.visualViewport;
     wasAtBottom = nearBottom();
-    screen.value = viewport ? {top: viewport.offsetTop, height: viewport.height} : {top: 0, height: window.innerHeight};
+    const full = window.innerHeight;
+    screen.value = viewport ? {top: viewport.offsetTop, height: viewport.height, full} : {top: 0, height: full, full};
     // iOS may still scroll the document to reveal the text field; there is nothing to scroll to
     if (window.scrollY !== 0) window.scrollTo(0, 0);
     // like any messenger: when you were reading the latest messages, they stay just above the keyboard
@@ -290,7 +296,7 @@ function block() {
 <template>
     <Head :title="friend.name"/>
     <div class="fixed inset-x-0 z-10 mx-auto flex max-w-md flex-col bg-ink text-white [-webkit-tap-highlight-color:transparent]"
-         :style="{top: `${screen.top}px`, height: screen.height ? `${screen.height}px` : '100dvh'}">
+         :style="screenStyle">
         <header class="pt-safe shrink-0 border-b border-white/5 px-5">
             <div class="flex items-center gap-3 py-3">
                 <Link href="/chats" aria-label="Înapoi"
