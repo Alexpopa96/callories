@@ -26,9 +26,11 @@ const lastId = () => list.value.reduce((max, message) => (typeof message.id === 
 // instead of letting iOS push the whole page (header included) upwards
 const scroller = ref(null);
 const screen = ref({top: 0, height: null, full: null});
-const keyboardOpen = computed(() => screen.value.height !== null && screen.value.full - screen.value.height > 120);
-// keyboard closed: pinned to both edges, so the input always sits on the very bottom even when the
-// measured viewport height is stale (WKWebView reports it wrong after the keyboard hides)
+// the keyboard only exists while the text field has focus; the viewport height alone is not trusted
+// for this, WKWebView sometimes reports it too small with no keyboard at all
+const typing = ref(false);
+const keyboardOpen = computed(() => typing.value && screen.value.height !== null && screen.value.full - screen.value.height > 120);
+// keyboard closed: pinned to both edges, so the input always sits on the very bottom
 const screenStyle = computed(() => (keyboardOpen.value
     ? {top: `${screen.value.top}px`, height: `${screen.value.height}px`}
     : {top: '0px', bottom: '0px'}));
@@ -54,6 +56,12 @@ function fitToViewport() {
     if (window.scrollY !== 0) window.scrollTo(0, 0);
     // like any messenger: when you were reading the latest messages, they stay just above the keyboard
     if (wasAtBottom) scrollToBottom();
+}
+
+function onBlur() {
+    typing.value = false;
+    // the viewport settles only after the keyboard has finished sliding away
+    setTimeout(fitToViewport, 350);
 }
 
 // updates: pushed over the websocket when it is up, polling every 4 s otherwise; with a live connection
@@ -386,6 +394,7 @@ function block() {
             <form class="flex items-end gap-2" @submit.prevent="send">
                 <textarea v-model="draft" rows="1" maxlength="2000" placeholder="Scrie un mesaj…"
                           class="max-h-32 min-h-12 flex-1 resize-none rounded-3xl border border-white/10 bg-white/5 px-4 py-3 text-base text-white placeholder:text-white/30 [field-sizing:content] focus:border-lime focus:ring-0"
+                          @focus="typing = true" @blur="onBlur"
                           @keydown="onKeydown"></textarea>
                 <button type="submit" aria-label="Trimite" :disabled="!draft.trim()"
                         @pointerdown.prevent
