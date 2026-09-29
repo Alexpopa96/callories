@@ -17,6 +17,7 @@ import {
     KeyIcon,
     LockClosedIcon,
     ScaleIcon,
+    UsersIcon,
 } from '@heroicons/vue/24/outline/index.js';
 
 const props = defineProps({
@@ -30,6 +31,7 @@ const props = defineProps({
     aiModels: Object,
     pushKey: {type: String, default: null},
     canTestPush: {type: Boolean, default: false},
+    friendRequests: {type: Number, default: 0},
 });
 
 const page = usePage();
@@ -199,6 +201,13 @@ const logout = () => router.post('/logout');
         <Link href="/weight" class="mt-4 flex items-center gap-3 rounded-[1.5rem] border border-white/10 bg-panel p-4 active:scale-[0.99]">
             <span class="flex size-10 items-center justify-center rounded-full bg-rose/15 text-rose"><ScaleIcon class="size-5"/></span>
             <span class="flex-1 font-bold">Greutate și evoluție</span>
+            <ChevronRightIcon class="size-5 text-white/35"/>
+        </Link>
+
+        <Link href="/friends" class="mt-3 flex items-center gap-3 rounded-[1.5rem] border border-white/10 bg-panel p-4 active:scale-[0.99]">
+            <span class="flex size-10 items-center justify-center rounded-full bg-aqua/15 text-aqua"><UsersIcon class="size-5"/></span>
+            <span class="flex-1 font-bold">Prieteni</span>
+            <span v-if="friendRequests" class="rounded-full bg-lime px-2 py-0.5 text-xs font-extrabold text-ink">{{ friendRequests }}</span>
             <ChevronRightIcon class="size-5 text-white/35"/>
         </Link>
 

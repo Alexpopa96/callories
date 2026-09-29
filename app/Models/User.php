@@ -4,11 +4,13 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Services\Anthropic\Models;
+use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Str;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Laravel\Jetstream\HasProfilePhoto;
 use Laravel\Sanctum\HasApiTokens;
@@ -17,11 +19,12 @@ use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable
 {
     use HasApiTokens;
-    use HasRoles;
-
-    /** @use HasFactory<\Database\Factories\UserFactory> */
+    /** @use HasFactory<UserFactory> */
     use HasFactory;
+
     use HasProfilePhoto;
+
+    use HasRoles;
     use Notifiable;
     use TwoFactorAuthenticatable;
 
@@ -179,6 +182,48 @@ class User extends Authenticatable
     public function pushSubscriptions(): HasMany
     {
         return $this->hasMany(PushSubscription::class);
+    }
+
+    public function blocks(): HasMany
+    {
+        return $this->hasMany(UserBlock::class);
+    }
+
+    /** Short shareable code others use to send a friend request, created on first use. */
+    public function friendCode(): string
+    {
+        if (! $this->friend_code) {
+            $this->forceFill(['friend_code' => self::newFriendCode()])->save();
+        }
+
+        return $this->friend_code;
+    }
+
+    public static function newFriendCode(): string
+    {
+        // no 0/O or 1/I/L so codes can be read out loud and typed without mistakes
+        do {
+            $code = collect(range(1, 8))->map(fn () => Str::substr('ABCDEFGHJKMNPQRSTUVWXYZ23456789', random_int(0, 30), 1))->join('');
+        } while (self::where('friend_code', $code)->exists());
+
+        return $code;
+    }
+
+    /** Ids of accepted friends, whichever side sent the request. */
+    public function friendIds(): array
+    {
+        return Friendship::involving($this)
+            ->where('status', 'accepted')
+            ->get(['user_id', 'friend_id'])
+            ->map(fn (Friendship $friendship) => $friendship->user_id === $this->id ? $friendship->friend_id : $friendship->user_id)
+            ->all();
+    }
+
+    public function blockedEitherWay(User $other): bool
+    {
+        return UserBlock::where(fn ($q) => $q->where('user_id', $this->id)->where('blocked_id', $other->id))
+            ->orWhere(fn ($q) => $q->where('user_id', $other->id)->where('blocked_id', $this->id))
+            ->exists();
     }
 
     public function userRole()

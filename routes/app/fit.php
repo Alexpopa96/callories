@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Fit\AbandonChallenge;
+use App\Http\Controllers\Fit\AcceptFriend;
 use App\Http\Controllers\Fit\AddMeal;
 use App\Http\Controllers\Fit\Analyze;
 use App\Http\Controllers\Fit\AnalyzeText;
@@ -9,31 +10,37 @@ use App\Http\Controllers\Fit\ApplyGoals;
 use App\Http\Controllers\Fit\AskAssistant;
 use App\Http\Controllers\Fit\AskWorkoutCoach;
 use App\Http\Controllers\Fit\Assistant;
+use App\Http\Controllers\Fit\BlockUser;
 use App\Http\Controllers\Fit\DestroyAccount;
 use App\Http\Controllers\Fit\DestroyApiKey;
 use App\Http\Controllers\Fit\DestroyFavorite;
+use App\Http\Controllers\Fit\DestroyFriend;
 use App\Http\Controllers\Fit\DestroyMeal;
 use App\Http\Controllers\Fit\DestroyWeight;
 use App\Http\Controllers\Fit\DestroyWorkout;
 use App\Http\Controllers\Fit\DismissAdaptiveGoal;
 use App\Http\Controllers\Fit\EditMeal;
 use App\Http\Controllers\Fit\ExportData;
+use App\Http\Controllers\Fit\Friends;
 use App\Http\Controllers\Fit\History;
 use App\Http\Controllers\Fit\Home;
 use App\Http\Controllers\Fit\LookupBarcode;
 use App\Http\Controllers\Fit\Profile;
 use App\Http\Controllers\Fit\RefineMeal;
+use App\Http\Controllers\Fit\RegenerateFriendCode;
 use App\Http\Controllers\Fit\Scan;
 use App\Http\Controllers\Fit\ShowChallenge;
 use App\Http\Controllers\Fit\ShowWorkout;
 use App\Http\Controllers\Fit\StoreChallenge;
 use App\Http\Controllers\Fit\StoreCustomBarcode;
 use App\Http\Controllers\Fit\StoreFavorite;
+use App\Http\Controllers\Fit\StoreFriend;
 use App\Http\Controllers\Fit\StoreMeal;
 use App\Http\Controllers\Fit\StoreWeight;
 use App\Http\Controllers\Fit\StoreWorkout;
 use App\Http\Controllers\Fit\SubscribePush;
 use App\Http\Controllers\Fit\TestPush;
+use App\Http\Controllers\Fit\UnblockUser;
 use App\Http\Controllers\Fit\UnsubscribePush;
 use App\Http\Controllers\Fit\UpdateAiModel;
 use App\Http\Controllers\Fit\UpdateApiKey;
@@ -92,6 +99,14 @@ Route::middleware(['auth'])->group(function () {
     Route::post('challenge', StoreChallenge::class)->name('fit.challenge.store');
     Route::put('challenge/{challenge}', UpdateChallenge::class)->name('fit.challenge.update');
     Route::delete('challenge/{challenge}', AbandonChallenge::class)->name('fit.challenge.abandon');
+
+    Route::get('friends', Friends::class)->name('fit.friends');
+    Route::post('friends', StoreFriend::class)->middleware('throttle:10,1')->name('fit.friends.store');
+    Route::post('friends/code', RegenerateFriendCode::class)->name('fit.friends.code');
+    Route::post('friends/{friendship}/accept', AcceptFriend::class)->name('fit.friends.accept');
+    Route::delete('friends/{friendship}', DestroyFriend::class)->name('fit.friends.destroy');
+    Route::post('blocks/{user}', BlockUser::class)->name('fit.blocks.store');
+    Route::delete('blocks/{user}', UnblockUser::class)->name('fit.blocks.destroy');
 
     Route::get('me', Profile::class)->name('fit.profile');
     Route::put('me/goals', UpdateGoals::class)->name('fit.goals');
