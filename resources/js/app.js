@@ -10,6 +10,7 @@ import { useToast } from "vue-toastification";
 import 'animate.css';
 import { isNativeApp, listenForNotificationTaps } from './Composables/useNativeReminders';
 import { Keyboard } from '@capacitor/keyboard';
+import AppLock from './Components/Fit/AppLock.vue';
 import "vue-toastification/dist/index.css";
 import "vue-multiselect/dist/vue-multiselect.css";
 
@@ -38,7 +39,7 @@ createInertiaApp({
     title: (title) => `${title} - ${appName}`,
     resolve: (name) => resolvePageComponent(`./Pages/${name}.vue`, import.meta.glob('./Pages/**/*.vue')),
     setup({ el, App, props, plugin }) {
-        const inertiaApp =   createApp({render: () => h(App, props)})
+        const inertiaApp =   createApp({render: () => [h(App, props), h(AppLock)]})
             .use(plugin)
             .use(Toast)
             .component('useToast', useToast)
