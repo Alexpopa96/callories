@@ -7,14 +7,12 @@ import BottomSheet from '@/Components/Fit/BottomSheet.vue';
 import Section from '@/Components/Fit/Section.vue';
 import {disablePush, enablePush, pushSupported} from '@/Composables/usePush.js';
 import {isNativeApp, syncNativeReminders} from '@/Composables/useNativeReminders.js';
-import {appLockEnabled, appLockSupported, disableAppLock, enableAppLock} from '@/Composables/useAppLock.js';
 import {
     ArrowDownTrayIcon,
     ArrowRightStartOnRectangleIcon,
     BellIcon,
     CalculatorIcon,
     ChevronRightIcon,
-    FaceSmileIcon,
     FolderIcon,
     KeyIcon,
     LockClosedIcon,
@@ -200,26 +198,12 @@ async function sendTestPush() {
     }
 }
 
-// face id lock (web/PWA only, the native shell locks itself)
-const appLockError = ref(null);
-
-async function setAppLock(enabled) {
-    appLockError.value = null;
-    if (!enabled) return disableAppLock();
-
-    const result = await enableAppLock(user.value);
-    if (!result.ok) appLockError.value = result.reason;
-}
-
 // account
 const deleteSheet = ref(false);
 const deleteForm = useForm({password: ''});
 
 const deleteAccount = () => deleteForm.delete('/me', {preserveScroll: true});
-const logout = () => {
-    disableAppLock();
-    router.post('/logout');
-};
+const logout = () => router.post('/logout');
 </script>
 
 <template>
@@ -427,20 +411,6 @@ const logout = () => {
                 <p v-if="testPushResult" class="text-xs text-white/60">{{ testPushResult }}</p>
             </div>
         </div>
-        </Section>
-
-        <Section v-if="!isNativeApp() && appLockSupported()" title="Blocare cu Face ID" color="aqua">
-            <template #icon><FaceSmileIcon class="size-5"/></template>
-        <label class="flex items-start justify-between gap-4">
-            <span>
-                <span class="block font-bold">Cere Face ID la deschidere</span>
-                <span class="block text-xs text-white/45">Și când revii în aplicație după mai mult de un minut. Se aplică doar pe dispozitivul acesta.</span>
-            </span>
-            <input type="checkbox" :checked="appLockEnabled"
-                   class="mt-1 size-6 shrink-0 rounded-md border-white/20 bg-white/5 text-lime focus:ring-0"
-                   @change="setAppLock($event.target.checked); $event.target.checked = appLockEnabled"/>
-        </label>
-        <p v-if="appLockError" class="mt-3 text-sm text-rose">{{ appLockError }}</p>
         </Section>
 
         <Section title="Schimbă parola" color="lime">
